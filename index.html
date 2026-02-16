@@ -1522,7 +1522,7 @@ async function startOCR(imageData) {
 }
 
 // ===============================================
-// SMART TICKET PARSER
+// SMART TICKET PARSER v2 — Improved for complex tickets
 // ===============================================
 function parseTicketText(text, ocrConfidence) {
   const result = {
@@ -1536,28 +1536,58 @@ function parseTicketText(text, ocrConfidence) {
     rawText: text
   };
 
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  // Clean OCR artifacts and normalize text
+  const cleanedText = text
+    .replace(/[|¥©®™°]/g, '')
+    .replace(/\s{3,}/g, '  ')
+    .replace(/(\d)\s+([.,])\s+(\d)/g, '$1$2$3');  // Fix split decimals: "12 , 50" → "12,50"
 
-  // --- PROVIDER ---
-  // Usually the first 1-3 non-empty lines that aren't numbers/dates
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const line = lines[i];
-    if (line.length > 2 && !/^\d{1,2}[\/\-\.]\d{1,2}/.test(line) && !/^[\d\s,\.€$]+$/.test(line)) {
-      // Skip CIF/NIF lines
-      if (/^[A-Z]\d{7,8}/.test(line) || /^CIF|^NIF|^N\.I\.F/i.test(line)) continue;
-      result.provider = cleanProviderName(line);
-      break;
-    }
-  }
+  const lines = cleanedText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  // --- DATE ---
-  const datePatterns = [
-    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,   // DD/MM/YYYY
-    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{2})/,     // DD/MM/YY
-    /(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/,      // YYYY/MM/DD
+  // --- PROVIDER (improved) ---
+  // Skip noise lines (short, numeric, fiscal IDs, addresses with numbers)
+  const skipLinePatterns = [
+    /^[A-Z0-9]{1,3}$/,                          // Very short codes
+    /^[A-Z]\s?\d{7,8}/i,                        // CIF: B12345678
+    /^CIF|^NIF|^N\.?I\.?F|^C\.?I\.?F/i,        // Fiscal ID labels
+    /^\d{5}/,                                     // Postal codes
+    /^TEL|^TLF|^FAX|^PHONE/i,                   // Phone lines
+    /^www\.|^http|^@/i,                          // URLs/emails
+    /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/,  // Date lines
+    /^[\d\s,\.€$%]+$/,                           // Pure number lines
+    /^-{3,}|^={3,}|^\*{3,}/,                    // Separator lines
+    /^TICKET|^FACTURA|^RECIBO|^RECEIPT|^INVOICE/i, // Document type headers
+    /^ORIGINAL|^COPIA|^DUPLICADO/i,              // Copy indicators
   ];
 
-  for (const line of lines) {
+  for (let i = 0; i < Math.min(8, lines.length); i++) {
+    const line = lines[i];
+    if (line.length < 3) continue;
+    let skip = false;
+    for (const pattern of skipLinePatterns) {
+      if (pattern.test(line)) { skip = true; break; }
+    }
+    if (skip) continue;
+    // Found a good provider candidate
+    result.provider = cleanProviderName(line);
+    break;
+  }
+
+  // --- DATE (improved — scan ALL lines, prefer lines with date keywords) ---
+  const datePatterns = [
+    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,   // DD/MM/YYYY
+    /(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/,    // YYYY/MM/DD
+    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{2})/,    // DD/MM/YY
+  ];
+
+  // First pass: lines containing "fecha", "date", etc.
+  const dateKeywords = /fecha|date|data|fch/i;
+  const allLines = [...lines];
+  const priorityLines = allLines.filter(l => dateKeywords.test(l));
+  const linesToScan = [...priorityLines, ...allLines];
+
+  for (const line of linesToScan) {
+    if (result.date) break;
     for (const pattern of datePatterns) {
       const match = line.match(pattern);
       if (match) {
@@ -1570,43 +1600,66 @@ function parseTicketText(text, ocrConfidence) {
           day = match[1]; month = match[2];
           year = parseInt(match[3]) > 50 ? '19' + match[3] : '20' + match[3];
         }
-        // Validate
-        const d = parseInt(day), m = parseInt(month);
-        if (d >= 1 && d <= 31 && m >= 1 && m <= 12) {
-          result.date = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+        const d = parseInt(day), m = parseInt(month), y = parseInt(year);
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2020 && y <= 2030) {
+          result.date = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
           break;
         }
       }
     }
-    if (result.date) break;
   }
 
-  // --- TOTAL ---
+  // --- TOTAL (v2: scan from BOTTOM up, prefer the LAST "total" match) ---
+  // In multi-line tickets, the real total is usually at the bottom
   const totalPatterns = [
-    /TOTAL\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /IMPORTE\s*TOTAL\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /TOTAL\s*€?\s*(\d+[\.,]\d{2})/i,
-    /TOTAL\s*EUR\s*(\d+[\.,]\d{2})/i,
-    /A\s*PAGAR\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /AMOUNT\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    { regex: /TOTAL\s*A\s*PAGAR\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 10 },
+    { regex: /IMPORTE\s*TOTAL\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 9 },
+    { regex: /TOTAL\s*FACTURA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 9 },
+    { regex: /TOTAL\s*EUR\s*[\:\s]*(\d+[\.,]\d{2})/i, priority: 8 },
+    { regex: /A\s*PAGAR\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 8 },
+    { regex: /AMOUNT\s*DUE\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 8 },
+    { regex: /TOTAL\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 7 },
+    { regex: /EFECTIVO\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
+    { regex: /TARJETA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
+    { regex: /VISA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
+    { regex: /MASTERCARD\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
+    { regex: /ENTREGADO\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 4 },
   ];
 
-  for (const line of lines) {
-    for (const pattern of totalPatterns) {
-      const match = line.match(pattern);
+  // Also patterns to EXCLUDE from being the total (subtotals, bases, etc.)
+  const notTotalPatterns = /SUBTOTAL|BASE\s*IMP|NETO|DESCUENTO|DTO|CAMBIO|ENTREGADO|DEVOL/i;
+
+  let bestTotal = { value: '', priority: 0, lineIndex: -1 };
+
+  // Scan from bottom to top (reverse)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    for (const tp of totalPatterns) {
+      const match = line.match(tp.regex);
       if (match) {
-        result.total = match[1].replace(',', '.');
-        break;
+        const val = match[1].replace(',', '.');
+        const numVal = parseFloat(val);
+        // Skip suspiciously small or large values
+        if (numVal < 0.01 || numVal > 50000) continue;
+        // Prioritize: higher priority pattern OR same priority but later in ticket
+        if (tp.priority > bestTotal.priority ||
+            (tp.priority === bestTotal.priority && i > bestTotal.lineIndex)) {
+          // But skip if the line also matches a "not total" pattern (unless it's highest priority)
+          if (tp.priority < 8 && notTotalPatterns.test(line)) continue;
+          bestTotal = { value: val, priority: tp.priority, lineIndex: i };
+        }
       }
     }
-    if (result.total) break;
   }
 
-  // Fallback: find the largest number as potential total
-  if (!result.total) {
+  if (bestTotal.value) {
+    result.total = bestTotal.value;
+  } else {
+    // Fallback: largest number in the last third of the ticket
     let maxVal = 0;
-    for (const line of lines) {
-      const nums = line.match(/(\d+[\.,]\d{2})/g);
+    const startLine = Math.floor(lines.length * 0.5); // Only look at bottom half
+    for (let i = startLine; i < lines.length; i++) {
+      const nums = lines[i].match(/(\d+[\.,]\d{2})/g);
       if (nums) {
         for (const n of nums) {
           const val = parseFloat(n.replace(',', '.'));
@@ -1619,71 +1672,213 @@ function parseTicketText(text, ocrConfidence) {
     }
   }
 
-  // --- IVA ---
+  // --- IVA / VAT (v2: much more comprehensive Spanish patterns) ---
+  const ivaResults = [];
+
   const ivaPatterns = [
-    /I\.?V\.?A\.?\s*[\(\:]?\s*(\d+)\s*%?\)?\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /(\d+)\s*%\s*I\.?V\.?A\.?\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /CUOTA\s*[\:\s]*(\d+[\.,]\d{2})/i,
-    /VAT\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    // "IVA 10%: 1,50" or "I.V.A. 10% 1,50"
+    { regex: /I\.?V\.?A\.?\s*[\(\:]?\s*(\d+)\s*%\)?\s*[\:\s]*(\d+[\.,]\d{2})/i, rateGroup: 1, amountGroup: 2 },
+    // "10% IVA: 1,50" or "10% I.V.A. 1,50"
+    { regex: /(\d+)\s*%\s*I\.?V\.?A\.?\s*[\:\s]*(\d+[\.,]\d{2})/i, rateGroup: 1, amountGroup: 2 },
+    // "CUOTA IVA: 1,50" or "CUOTA: 1,50"
+    { regex: /CUOTA\s*(?:I\.?V\.?A\.?)?\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
+    // "IVA REPERCUTIDO: 1,50"
+    { regex: /I\.?V\.?A\.?\s*REPERC\w*\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
+    // "IVA INCLUIDO" — means VAT is included in total, try to find the rate
+    { regex: /I\.?V\.?A\.?\s*(?:INCL\w*|INC)\s*/i, included: true },
+    // "IMPUESTOS: 1,50" or "TAX: 1,50"
+    { regex: /(?:IMPUESTO|TAX)\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
+    // "VAT: 1,50"
+    { regex: /VAT\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
+    // "BASE IMPONIBLE: 10,00" — we can derive VAT from this + total
+    { regex: /BASE\s*(?:IMP\w*|GRAV\w*)?\s*[\:\s]*(\d+[\.,]\d{2})/i, isBase: true, amountGroup: 1 },
+    // Specific rates: "21%  3,50" or "10%  1,20" on their own line
+    { regex: /^(\d+)\s*%\s+(\d+[\.,]\d{2})$/i, rateGroup: 1, amountGroup: 2 },
   ];
 
+  let baseImponible = null;
+  let ivaIncluded = false;
+
   for (const line of lines) {
-    for (const pattern of ivaPatterns) {
-      const match = line.match(pattern);
+    for (const ip of ivaPatterns) {
+      const match = line.match(ip.regex);
       if (match) {
-        if (match.length >= 3) {
-          result.vatRate = match[1];
-          result.vat = match[2].replace(',', '.');
-        } else {
-          result.vat = match[1].replace(',', '.');
+        if (ip.included) {
+          ivaIncluded = true;
+          continue;
         }
-        break;
+        if (ip.isBase) {
+          baseImponible = parseFloat(match[ip.amountGroup].replace(',', '.'));
+          continue;
+        }
+        const ivaEntry = {};
+        if (ip.amountGroup) ivaEntry.amount = match[ip.amountGroup].replace(',', '.');
+        if (ip.rateGroup) ivaEntry.rate = match[ip.rateGroup];
+        if (ivaEntry.amount) ivaResults.push(ivaEntry);
       }
     }
-    if (result.vat) break;
   }
 
-  // If we have total but no VAT, try to calculate
-  if (result.total && !result.vat) {
+  // Use the IVA result
+  if (ivaResults.length > 0) {
+    // If multiple IVA lines, sum them (multi-rate tickets)
+    let totalVAT = 0;
+    let detectedRate = '';
+    for (const iv of ivaResults) {
+      totalVAT += parseFloat(iv.amount) || 0;
+      if (iv.rate) detectedRate = iv.rate;
+    }
+    result.vat = totalVAT.toFixed(2);
+    if (detectedRate) result.vatRate = detectedRate;
+  }
+
+  // If we found BASE IMPONIBLE + TOTAL but no explicit IVA amount
+  if (!result.vat && baseImponible && result.total) {
     const total = parseFloat(result.total);
-    // Default 10% for restaurants in Spain
-    if (detectCategory(text) === 'comida') {
-      result.vat = (total - total / 1.10).toFixed(2);
-      result.vatRate = '10';
+    const vatAmount = total - baseImponible;
+    if (vatAmount > 0 && vatAmount < total) {
+      result.vat = vatAmount.toFixed(2);
+      // Try to detect rate from the calculation
+      const calcRate = (vatAmount / baseImponible) * 100;
+      if (Math.abs(calcRate - 21) < 1.5) result.vatRate = '21';
+      else if (Math.abs(calcRate - 10) < 1.5) result.vatRate = '10';
+      else if (Math.abs(calcRate - 4) < 1) result.vatRate = '4';
+    }
+  }
+
+  // If still no VAT but we know it's included, estimate by category
+  if (!result.vat && result.total) {
+    const total = parseFloat(result.total);
+    const category = detectCategory(cleanedText);
+    const defaultRates = {
+      comida: 10,
+      hotel: 10,
+      transporte: 10,
+      combustible: 21,
+      parking: 21,
+      peaje: 21,
+    };
+    const rate = defaultRates[category];
+    if (rate) {
+      result.vat = (total - total / (1 + rate / 100)).toFixed(2);
+      result.vatRate = String(rate);
     }
   }
 
   // --- CATEGORY ---
-  result.category = detectCategory(text);
+  result.category = detectCategory(cleanedText);
 
   return result;
 }
 
 function cleanProviderName(name) {
   return name
-    .replace(/[^\w\sáéíóúñüÁÉÍÓÚÑÜ&\-\.]/gi, '')
+    .replace(/[^\w\sáéíóúñüÁÉÍÓÚÑÜàèìòùâêîôûäëïöü&\-\.']/gi, '')
+    .replace(/\b(S\.?L\.?|S\.?A\.?|S\.?L\.?U\.?)\b/gi, match => match.toUpperCase())
     .replace(/\s+/g, ' ')
     .trim()
-    .substring(0, 60);
+    .substring(0, 80);
 }
 
 function detectCategory(text) {
   const t = text.toLowerCase();
 
-  const patterns = {
-    comida: /restauran|cafeter|bar\s|menú|menu|comida|cena|almuerz|desayun|tapas|cervez|pizza|burger|kebab|bocadill|racion|plato|cubierto|mesa|camarero/i,
-    combustible: /gasolina|gasóleo|diesel|gasoil|estación.?servicio|combustible|fuel|repsol|cepsa|bp\s|shell|galp|petrol/i,
-    hotel: /hotel|hostal|alojamiento|habitación|room|check.?in|check.?out|booking|accommodation|pernoctación|lodge|motel|resort/i,
-    parking: /parking|aparcamiento|estacionamiento|garaje|park.?&.?ride|empark|saba\s/i,
-    peaje: /peaje|toll|autopista|via.?t|telepeaje|autopist/i,
-    transporte: /taxi|uber|cabify|bolt|renfe|avión|vuelo|flight|tren|train|bus\s|autobús|metro|billete|ticket.?transport|boarding/i,
+  // Weighted scoring: each category has patterns with weights
+  const categories = {
+    comida: {
+      patterns: [
+        { regex: /restauran/i, weight: 3 },
+        { regex: /cafeter[ií]a/i, weight: 3 },
+        { regex: /bar\s|bar$/im, weight: 2 },
+        { regex: /men[uú]|menu/i, weight: 3 },
+        { regex: /comida|cena|almuerz|desayun/i, weight: 3 },
+        { regex: /tapas|racion|plato/i, weight: 2 },
+        { regex: /cervez|refres|agua\s*mineral|vino|copa/i, weight: 1.5 },
+        { regex: /pizza|burger|kebab|bocadill|sandwich|ensalad/i, weight: 2 },
+        { regex: /cubierto|mesa|camarero|propina|servicio\s*mesa/i, weight: 2 },
+        { regex: /entrante|postre|primer|segundo|caf[eé]/i, weight: 1.5 },
+        { regex: /marisquer|asador|taberna|mesón|mesonero|chiringuito|tasca/i, weight: 3 },
+        { regex: /telepizza|mcdon|burger\s*king|kfc|five\s*guys|goiko|100\s*montaditos/i, weight: 3 },
+        { regex: /just\s*eat|deliveroo|glovo|uber\s*eats/i, weight: 2 },
+      ]
+    },
+    combustible: {
+      patterns: [
+        { regex: /gasolina|gas[oó]leo|diesel|gasoil/i, weight: 3 },
+        { regex: /estaci[oó]n.{0,3}servicio/i, weight: 3 },
+        { regex: /combustible|fuel|carburante/i, weight: 3 },
+        { regex: /repsol|cepsa|bp\b|shell|galp|petronor|bonarea/i, weight: 3 },
+        { regex: /litros?\s*[xX@]\s*\d/i, weight: 3 },
+        { regex: /surtidor|repostaje|gasolinera/i, weight: 3 },
+        { regex: /e\.?s\.\s/i, weight: 1 },
+      ]
+    },
+    hotel: {
+      patterns: [
+        { regex: /hotel/i, weight: 3 },
+        { regex: /hostal|pens[ií][oó]n|albergue/i, weight: 3 },
+        { regex: /alojamiento|hospedaje/i, weight: 3 },
+        { regex: /habitaci[oó]n|room/i, weight: 2 },
+        { regex: /check.?in|check.?out/i, weight: 2 },
+        { regex: /pernoctaci[oó]n|noche|night/i, weight: 2 },
+        { regex: /booking|reservation|reserva/i, weight: 1 },
+        { regex: /NH\s|MELI[AÁ]|PARADORES|AC\sHOTEL|IBIS|NOVOTEL|HILTON|MARRIOTT/i, weight: 3 },
+        { regex: /airbnb|apartamento\s*tur/i, weight: 2 },
+      ]
+    },
+    parking: {
+      patterns: [
+        { regex: /parking/i, weight: 3 },
+        { regex: /aparcamiento|estacionamiento/i, weight: 3 },
+        { regex: /garaje|garage/i, weight: 2 },
+        { regex: /empark|saba\b|interparking|aena\s*park/i, weight: 3 },
+        { regex: /entrada.{0,10}salida/i, weight: 2 },
+        { regex: /barrera|plaza.{0,5}\d/i, weight: 1 },
+        { regex: /hora.{0,5}entrada|hora.{0,5}salida/i, weight: 2 },
+      ]
+    },
+    peaje: {
+      patterns: [
+        { regex: /peaje/i, weight: 3 },
+        { regex: /toll/i, weight: 3 },
+        { regex: /autopista/i, weight: 2 },
+        { regex: /v[ií]a.?t\b|telepeaje/i, weight: 3 },
+        { regex: /abertis|cintra|itinere|globalvia|audasa|acesa|aucalsa/i, weight: 3 },
+        { regex: /AP-\d|AP\d/i, weight: 2 },
+      ]
+    },
+    transporte: {
+      patterns: [
+        { regex: /taxi\b/i, weight: 3 },
+        { regex: /uber(?!\s*eat)/i, weight: 3 },
+        { regex: /cabify|bolt|freenow|mytaxi/i, weight: 3 },
+        { regex: /renfe|cercan[ií]as|ave\b|tren|train/i, weight: 3 },
+        { regex: /avi[oó]n|vuelo|flight|boarding/i, weight: 3 },
+        { regex: /iberia|vueling|ryanair|easyjet|air\s*europa|lufthansa/i, weight: 3 },
+        { regex: /autob[uú]s|bus\b|autocar/i, weight: 2 },
+        { regex: /metro\b|tranv[ií]a|cercan[ií]a/i, weight: 2 },
+        { regex: /billete|ticket\s*transp/i, weight: 2 },
+        { regex: /alsa|avanza|socibus|iryo|ouigo/i, weight: 3 },
+        { regex: /tarifa.{0,10}(carrera|viaje|trayecto)/i, weight: 2 },
+      ]
+    },
   };
 
-  for (const [cat, regex] of Object.entries(patterns)) {
-    if (regex.test(t)) return cat;
+  let bestCategory = '';
+  let bestScore = 0;
+
+  for (const [cat, data] of Object.entries(categories)) {
+    let score = 0;
+    for (const p of data.patterns) {
+      if (p.regex.test(t)) score += p.weight;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = cat;
+    }
   }
 
-  return '';
+  return bestScore >= 1.5 ? bestCategory : '';
 }
 
 // ===============================================
