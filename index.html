@@ -1037,7 +1037,7 @@ textarea.form-input {
 
       <div id="policyAlerts"></div>
 
-      <form id="expenseForm" onsubmit="submitExpense(event)">
+      <form id="expenseForm" onsubmit="submitExpense(event)" novalidate>
         <div class="form-section">
           <div class="form-section-title">
             <span>📝</span>
@@ -1063,7 +1063,7 @@ textarea.form-input {
                 <span data-i18n="category">Categoría</span>
                 <span class="auto-badge" id="badge-category" data-i18n="auto">AUTO</span>
               </label>
-              <select class="form-select" id="inputCategory" required>
+              <select class="form-select" id="inputCategory">
                 <option value="">—</option>
                 <option value="comida">🍽️ Comida</option>
                 <option value="transporte">🚕 Transporte</option>
@@ -2012,30 +2012,97 @@ function getFormData(status) {
     payment: document.getElementById('inputPayment').value,
     notes: document.getElementById('inputNotes').value,
     status: status,
-    image: currentImage,
+    image: compressImage(currentImage),
     createdAt: new Date().toISOString(),
   };
 }
 
+// Compress image to thumbnail to avoid localStorage overflow
+function compressImage(dataUrl) {
+  if (!dataUrl) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.src = dataUrl;
+    // Create a small thumbnail (max 400px wide)
+    const maxW = 400;
+    const scale = Math.min(1, maxW / (img.naturalWidth || 800));
+    canvas.width = (img.naturalWidth || 800) * scale;
+    canvas.height = (img.naturalHeight || 600) * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.5);
+  } catch (e) {
+    // If compression fails, store a flag instead of the full image
+    return 'image_captured';
+  }
+}
+
+function validateForm(requireAll) {
+  const provider = document.getElementById('inputProvider').value.trim();
+  const total = document.getElementById('inputTotal').value;
+
+  if (requireAll) {
+    if (!provider) {
+      showToast(currentLang === 'es' ? 'Introduce el proveedor' : 'Enter the provider', 'warning');
+      document.getElementById('inputProvider').focus();
+      return false;
+    }
+    if (!total || parseFloat(total) <= 0) {
+      showToast(currentLang === 'es' ? 'Introduce el importe total' : 'Enter the total amount', 'warning');
+      document.getElementById('inputTotal').focus();
+      return false;
+    }
+  }
+  return true;
+}
+
 function saveDraft() {
-  const data = getFormData('draft');
-  expenses.unshift(data);
-  saveExpenses();
-  showToast(t('saved_draft'), 'success');
-  showScreen('home');
+  try {
+    const data = getFormData('draft');
+    expenses.unshift(data);
+    saveExpenses();
+    showToast(t('saved_draft'), 'success');
+    showScreen('home');
+  } catch (err) {
+    console.error('Save draft error:', err);
+    showToast(currentLang === 'es' ? 'Error al guardar. Inténtalo de nuevo.' : 'Save error. Try again.', 'error');
+  }
 }
 
 function submitExpense(e) {
-  e.preventDefault();
-  const data = getFormData('pending');
-  expenses.unshift(data);
-  saveExpenses();
-  showToast(t('submitted'), 'success');
-  showScreen('home');
+  if (e) e.preventDefault();
+  if (!validateForm(true)) return;
+  try {
+    const data = getFormData('pending');
+    expenses.unshift(data);
+    saveExpenses();
+    showToast(t('submitted'), 'success');
+    showScreen('home');
+  } catch (err) {
+    console.error('Submit error:', err);
+    showToast(currentLang === 'es' ? 'Error al enviar. Inténtalo de nuevo.' : 'Submit error. Try again.', 'error');
+  }
 }
 
 function saveExpenses() {
-  localStorage.setItem('expenses', JSON.stringify(expenses));
+  try {
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+  } catch (e) {
+    // localStorage full — remove images from oldest expenses and retry
+    console.warn('localStorage full, compressing old expenses...');
+    for (let i = expenses.length - 1; i >= 0; i--) {
+      if (expenses[i].image && expenses[i].image !== 'image_captured') {
+        expenses[i].image = 'image_captured';
+        try {
+          localStorage.setItem('expenses', JSON.stringify(expenses));
+          return; // Success after cleanup
+        } catch (e2) { continue; }
+      }
+    }
+    // If still failing, notify user
+    showToast(currentLang === 'es' ? 'Memoria llena. Exporta y limpia gastos antiguos.' : 'Storage full. Export and clean old expenses.', 'warning');
+  }
 }
 
 function deleteExpense(id) {
