@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<title>ExpenseFlow — Gestión de Gastos</title>
+<link rel="manifest" href="data:application/json,{}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-input: #0f172a;
+  --bg-elevated: #334155;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.15);
+  --accent-hover: #7dd3fc;
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.1);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.1);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.1);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: #334155;
+  --border-focus: #38bdf8;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===== APP SHELL ===== */
+.app-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== HEADER ===== */
+.header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 2px 12px rgba(56, 189, 248, 0.3);
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.logo-text span { color: var(--accent); }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 16px;
+}
+
+.btn-icon:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1;
+  padding: 20px;
+  padding-bottom: 100px;
+}
+
+/* ===== SCREENS ===== */
+.screen { display: none; animation: fadeIn 0.3s ease; }
+.screen.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ===== HOME SCREEN ===== */
+.welcome-card {
+  background: linear-gradient(135deg, #1e3a5f, #1e293b);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 70% 30%, rgba(56, 189, 248, 0.08), transparent 50%);
+  pointer-events: none;
+}
+
+.welcome-greeting {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.welcome-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.welcome-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-box {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-value.warning { color: var(--warning); }
+.stat-value.success { color: var(--success); }
+
+/* ===== NEW EXPENSE BUTTON ===== */
+.new-expense-btn {
+  width: 100%;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #0f172a;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: var(--transition);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+  margin-bottom: 24px;
+}
+
+.new-expense-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(56, 189, 248, 0.4);
+}
+
+.new-expense-btn:active {
+  transform: translateY(0);
+}
+
+.new-expense-btn .icon { font-size: 22px; }
+
+/* ===== RECENT EXPENSES ===== */
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expense-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  animation: slideUp 0.3s ease backwards;
+}
+
+.expense-item:hover {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.expense-item:nth-child(1) { animation-delay: 0.05s; }
+.expense-item:nth-child(2) { animation-delay: 0.1s; }
+.expense-item:nth-child(3) { animation-delay: 0.15s; }
+.expense-item:nth-child(4) { animation-delay: 0.2s; }
+
+.expense-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.expense-icon.comida { background: rgba(251, 146, 60, 0.15); }
+.expense-icon.transporte { background: rgba(96, 165, 250, 0.15); }
+.expense-icon.hotel { background: rgba(167, 139, 250, 0.15); }
+.expense-icon.combustible { background: rgba(52, 211, 153, 0.15); }
+.expense-icon.parking { background: rgba(251, 191, 36, 0.15); }
+.expense-icon.peaje { background: rgba(248, 113, 113, 0.15); }
+
+.expense-info { flex: 1; min-width: 0; }
+
+.expense-provider {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.expense-amount {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.expense-status {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.status-draft { background: var(--bg-elevated); color: var(--text-muted); }
+.status-pending { background: var(--warning-bg); color: var(--warning); }
+.status-approved { background: var(--success-bg); color: var(--success); }
+.status-rejected { background: var(--danger-bg); color: var(--danger); }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ===== CAPTURE SCREEN ===== */
+.capture-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-xl);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  background: rgba(56, 189, 248, 0.02);
+}
+
+.capture-zone:hover,
+.capture-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.capture-zone .icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.capture-zone .title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.capture-zone .subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.capture-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.capture-btn {
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.capture-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.capture-btn .icon { font-size: 20px; }
+
+/* ===== OCR PROCESSING ===== */
+.ocr-processing {
+  text-align: center;
+  padding: 40px 20px;
+  display: none;
+}
+
+.ocr-processing.active { display: block; }
+
+.ocr-spinner {
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.ocr-processing .title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.ocr-processing .subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ocr-progress {
+  width: 200px;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  margin: 16px auto 0;
+  overflow: hidden;
+}
+
+.ocr-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #818cf8);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* ===== TICKET PREVIEW ===== */
+.ticket-preview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+}
+
+/* ===== FORM ===== */
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group.full { grid-column: 1 / -1; }
+
+.form-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-label .auto-badge {
+  font-size: 9px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 14px;
+  transition: var(--transition);
+  outline: none;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.form-input.auto-filled {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.05);
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.form-input[type="date"] {
+  color-scheme: dark;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* ===== CONFIDENCE INDICATOR ===== */
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.confidence-bar .label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.confidence-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.confidence-fill.high { background: var(--success); }
+.confidence-fill.medium { background: var(--warning); }
+.confidence-fill.low { background: var(--danger); }
+
+.confidence-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  color: #0f172a;
+  box-shadow: 0 2px 12px rgba(56, 189, 248, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.btn-full { grid-column: 1 / -1; }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-family: var(--font);
+}
+
+.nav-item:hover { color: var(--text-secondary); }
+.nav-item.active { color: var(--accent); }
+.nav-item .icon { font-size: 22px; }
+.nav-item .label { font-size: 10px; font-weight: 600; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 40px);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.warning { border-left: 3px solid var(--warning); }
+
+/* ===== MODAL / DETAIL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal-content {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 24px 20px;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+/* ===== BACK BUTTON ===== */
+.back-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: var(--transition);
+}
+
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.screen-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ===== POLICY ALERT ===== */
+.policy-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  animation: slideUp 0.3s ease;
+}
+
+.policy-alert.warning {
+  background: var(--warning-bg);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: var(--warning);
+}
+
+.policy-alert.error {
+  background: var(--danger-bg);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: var(--danger);
+}
+
+.policy-alert .icon { font-size: 18px; flex-shrink: 0; }
+
+/* ===== RESPONSIVE ===== */
+@media (min-width: 640px) {
+  .app-container {
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}
+
+/* ===== SETTINGS SCREEN ===== */
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-item:last-child { border-bottom: none; }
+
+.settings-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.settings-label { font-size: 14px; font-weight: 500; }
+.settings-desc { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+/* Toggle */
+.toggle {
+  width: 44px;
+  height: 24px;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.toggle.active { background: var(--accent); }
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: var(--transition);
+}
+
+.toggle.active::after { left: 23px; }
+
+/* ===== HIDDEN ===== */
+.hidden { display: none !important; }
+
+#fileInput, #cameraInput { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">💸</div>
+      <div class="logo-text">Expense<span>Flow</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="toggleLang()" title="ES/EN" id="langBtn">🌐</button>
+      <button class="btn-icon" onclick="showScreen('settings')" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ===== HOME SCREEN ===== -->
+    <div id="screen-home" class="screen active">
+      <div class="welcome-card">
+        <div class="welcome-greeting" data-i18n="welcome_greeting">Buenos días</div>
+        <div class="welcome-name" id="userName">Usuario</div>
+        <div class="welcome-stats">
+          <div class="stat-box">
+            <div class="stat-label" data-i18n="this_month">Este mes</div>
+            <div class="stat-value" id="totalMonth">0,00 €</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label" data-i18n="pending_approval">Pendientes</div>
+            <div class="stat-value warning" id="pendingCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="new-expense-btn" onclick="showScreen('capture')">
+        <span class="icon">📸</span>
+        <span data-i18n="new_expense">Nuevo Gasto</span>
+      </button>
+
+      <div class="section-title">
+        <span data-i18n="recent_expenses">Gastos recientes</span>
+      </div>
+
+      <div class="expense-list" id="expenseList">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📋</div>
+          <p data-i18n="no_expenses">No hay gastos registrados aún.<br>Pulsa "Nuevo Gasto" para empezar.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CAPTURE SCREEN ===== -->
+    <div id="screen-capture" class="screen">
+      <div class="back-row">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="screen-title" data-i18n="capture_title">Capturar ticket</div>
+      </div>
+
+      <div id="captureZone" class="capture-zone" onclick="document.getElementById('fileInput').click()">
+        <span class="icon">📷</span>
+        <div class="title" data-i18n="capture_instruction">Sube o arrastra tu ticket</div>
+        <div class="subtitle" data-i18n="capture_formats">JPG, PNG o PDF · Máx 10MB</div>
+      </div>
+
+      <div class="capture-buttons">
+        <button class="capture-btn" onclick="document.getElementById('cameraInput').click()">
+          <span class="icon">📸</span>
+          <span data-i18n="take_photo">Hacer foto</span>
+        </button>
+        <button class="capture-btn" onclick="document.getElementById('fileInput').click()">
+          <span class="icon">📁</span>
+          <span data-i18n="choose_file">Elegir archivo</span>
+        </button>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*,.pdf" onchange="handleFileSelect(event)">
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(event)">
+
+      <div id="ocrProcessing" class="ocr-processing">
+        <div class="ocr-spinner"></div>
+        <div class="title" data-i18n="ocr_processing">Analizando ticket...</div>
+        <div class="subtitle" data-i18n="ocr_extracting">Extrayendo datos automáticamente</div>
+        <div class="ocr-progress">
+          <div class="ocr-progress-bar" id="ocrProgressBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPENSE FORM ===== -->
+    <div id="screen-form" class="screen">
+      <div class="back-row">
+        <button class="back-btn" onclick="showScreen('capture')">←</button>
+        <div class="screen-title" data-i18n="expense_detail">Detalle del gasto</div>
+      </div>
+
+      <img id="ticketPreview" class="ticket-preview hidden" alt="Ticket">
+
+      <div class="confidence-bar" id="confidenceBar">
+        <span class="label" data-i18n="ocr_confidence">Fiabilidad OCR</span>
+        <div class="confidence-track">
+          <div class="confidence-fill" id="confidenceFill"></div>
+        </div>
+        <span class="confidence-value" id="confidenceValue">—</span>
+      </div>
+
+      <div id="policyAlerts"></div>
+
+      <form id="expenseForm" onsubmit="submitExpense(event)">
+        <div class="form-section">
+          <div class="form-section-title">
+            <span>📝</span>
+            <span data-i18n="basic_info">Información básica</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">
+                <span data-i18n="provider">Proveedor</span>
+                <span class="auto-badge" id="badge-provider" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="text" class="form-input" id="inputProvider" placeholder="Ej: Restaurante La Tasca" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="date">Fecha</span>
+                <span class="auto-badge" id="badge-date" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="date" class="form-input" id="inputDate" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="category">Categoría</span>
+                <span class="auto-badge" id="badge-category" data-i18n="auto">AUTO</span>
+              </label>
+              <select class="form-select" id="inputCategory" required>
+                <option value="">—</option>
+                <option value="comida">🍽️ Comida</option>
+                <option value="transporte">🚕 Transporte</option>
+                <option value="hotel">🏨 Hotel</option>
+                <option value="combustible">⛽ Combustible</option>
+                <option value="parking">🅿️ Parking</option>
+                <option value="peaje">🛣️ Peaje</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">
+            <span>💰</span>
+            <span data-i18n="amounts">Importes</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="total_amount">Total (€)</span>
+                <span class="auto-badge" id="badge-total" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="number" step="0.01" class="form-input" id="inputTotal" placeholder="0,00" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="vat">IVA (€)</span>
+                <span class="auto-badge" id="badge-vat" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="number" step="0.01" class="form-input" id="inputVAT" placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="vat_rate">Tipo IVA (%)</label>
+              <select class="form-select" id="inputVATRate">
+                <option value="">—</option>
+                <option value="21">21%</option>
+                <option value="10">10%</option>
+                <option value="4">4%</option>
+                <option value="0">0% / Exento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="payment_method">Método pago</label>
+              <select class="form-select" id="inputPayment">
+                <option value="tarjeta_corp">💳 Tarjeta corp.</option>
+                <option value="tarjeta_propia">💳 Tarjeta propia</option>
+                <option value="efectivo">💵 Efectivo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">
+            <span>📎</span>
+            <span data-i18n="additional">Adicional</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="notes">Notas / Comentarios</label>
+            <textarea class="form-input" id="inputNotes" rows="2" placeholder="Opcional..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="saveDraft()">
+            <span>💾</span>
+            <span data-i18n="save_draft">Borrador</span>
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <span>📤</span>
+            <span data-i18n="submit">Enviar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===== SETTINGS SCREEN ===== -->
+    <div id="screen-settings" class="screen">
+      <div class="back-row">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="screen-title" data-i18n="settings">Ajustes</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" data-i18n="your_name">Tu nombre</label>
+        <input type="text" class="form-input" id="settingsName" placeholder="Nombre y apellido" onchange="saveName()">
+      </div>
+
+      <div class="settings-item">
+        <div class="settings-info">
+          <div class="settings-icon">🌐</div>
+          <div>
+            <div class="settings-label" data-i18n="language">Idioma</div>
+            <div class="settings-desc" id="currentLang">Español</div>
+          </div>
+        </div>
+        <button class="toggle" id="langToggle" onclick="toggleLang()"></button>
+      </div>
+
+      <div class="settings-item">
+        <div class="settings-info">
+          <div class="settings-icon">🔔</div>
+          <div>
+            <div class="settings-label" data-i18n="notifications">Notificaciones</div>
+            <div class="settings-desc" data-i18n="notif_desc">Push y email</div>
+          </div>
+        </div>
+        <button class="toggle active"></button>
+      </div>
+
+      <div class="section-title" style="margin-top: 24px;">
+        <span data-i18n="policies">Políticas de gasto</span>
+      </div>
+
+      <div id="policySettings">
+        <div class="settings-item">
+          <div class="settings-info">
+            <div class="settings-icon">🍽️</div>
+            <div>
+              <div class="settings-label" data-i18n="cat_food">Comidas</div>
+              <div class="settings-desc" data-i18n="limit">Límite diario</div>
+            </div>
+          </div>
+          <span style="font-family: var(--font-mono); color: var(--accent);">50 €</span>
+        </div>
+        <div class="settings-item">
+          <div class="settings-info">
+            <div class="settings-icon">🏨</div>
+            <div>
+              <div class="settings-label" data-i18n="cat_hotel">Hotel</div>
+              <div class="settings-desc" data-i18n="limit_night">Límite por noche</div>
+            </div>
+          </div>
+          <span style="font-family: var(--font-mono); color: var(--accent);">120 €</span>
+        </div>
+        <div class="settings-item">
+          <div class="settings-info">
+            <div class="settings-icon">🚕</div>
+            <div>
+              <div class="settings-label" data-i18n="cat_transport">Transporte</div>
+              <div class="settings-desc" data-i18n="limit_trip">Límite por viaje</div>
+            </div>
+          </div>
+          <span style="font-family: var(--font-mono); color: var(--accent);">80 €</span>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top: 24px;">
+        <span data-i18n="data_export">Exportar datos</span>
+      </div>
+      <button class="btn btn-secondary btn-full" onclick="exportToCSV()" style="margin-top: 8px;">
+        <span>📊</span>
+        <span data-i18n="export_csv">Exportar a CSV (Excel)</span>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="home" onclick="showScreen('home')">
+      <span class="icon">🏠</span>
+      <span class="label" data-i18n="nav_home">Inicio</span>
+    </button>
+    <button class="nav-item" data-screen="capture" onclick="showScreen('capture')">
+      <span class="icon">📸</span>
+      <span class="label" data-i18n="nav_capture">Capturar</span>
+    </button>
+    <button class="nav-item" data-screen="settings" onclick="showScreen('settings')">
+      <span class="icon">⚙️</span>
+      <span class="label" data-i18n="nav_settings">Ajustes</span>
+    </button>
+  </nav>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TESSERACT.JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<script>
+// ===============================================
+// STATE
+// ===============================================
+let currentLang = 'es';
+let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+let currentImage = null;
+
+// ===============================================
+// i18n — Bilingual (ES/EN)
+// ===============================================
+const i18n = {
+  es: {
+    welcome_greeting: 'Buenos días',
+    this_month: 'Este mes',
+    pending_approval: 'Pendientes',
+    new_expense: 'Nuevo Gasto',
+    recent_expenses: 'Gastos recientes',
+    no_expenses: 'No hay gastos registrados aún.\nPulsa "Nuevo Gasto" para empezar.',
+    capture_title: 'Capturar ticket',
+    capture_instruction: 'Sube o arrastra tu ticket',
+    capture_formats: 'JPG, PNG o PDF · Máx 10MB',
+    take_photo: 'Hacer foto',
+    choose_file: 'Elegir archivo',
+    ocr_processing: 'Analizando ticket...',
+    ocr_extracting: 'Extrayendo datos automáticamente',
+    expense_detail: 'Detalle del gasto',
+    ocr_confidence: 'Fiabilidad OCR',
+    basic_info: 'Información básica',
+    provider: 'Proveedor',
+    date: 'Fecha',
+    category: 'Categoría',
+    amounts: 'Importes',
+    total_amount: 'Total (€)',
+    vat: 'IVA (€)',
+    vat_rate: 'Tipo IVA (%)',
+    payment_method: 'Método pago',
+    additional: 'Adicional',
+    notes: 'Notas / Comentarios',
+    save_draft: 'Borrador',
+    submit: 'Enviar',
+    auto: 'AUTO',
+    settings: 'Ajustes',
+    your_name: 'Tu nombre',
+    language: 'Idioma',
+    notifications: 'Notificaciones',
+    notif_desc: 'Push y email',
+    policies: 'Políticas de gasto',
+    cat_food: 'Comidas',
+    cat_hotel: 'Hotel',
+    cat_transport: 'Transporte',
+    limit: 'Límite diario',
+    limit_night: 'Límite por noche',
+    limit_trip: 'Límite por viaje',
+    data_export: 'Exportar datos',
+    export_csv: 'Exportar a CSV (Excel)',
+    nav_home: 'Inicio',
+    nav_capture: 'Capturar',
+    nav_settings: 'Ajustes',
+    status_draft: 'Borrador',
+    status_pending: 'Pendiente',
+    status_approved: 'Aprobado',
+    status_rejected: 'Rechazado',
+    saved_draft: 'Gasto guardado como borrador',
+    submitted: 'Gasto enviado para aprobación',
+    exported: 'CSV descargado correctamente',
+    policy_warn_food: '⚠️ Comidas: el límite diario es de 50 €',
+    policy_warn_hotel: '⚠️ Hotel: el límite por noche es de 120 €',
+    policy_warn_transport: '⚠️ Transporte: el límite por viaje es de 80 €',
+    delete_confirm: '¿Seguro que quieres eliminar este gasto?',
+    deleted: 'Gasto eliminado',
+  },
+  en: {
+    welcome_greeting: 'Good morning',
+    this_month: 'This month',
+    pending_approval: 'Pending',
+    new_expense: 'New Expense',
+    recent_expenses: 'Recent expenses',
+    no_expenses: 'No expenses recorded yet.\nTap "New Expense" to start.',
+    capture_title: 'Capture receipt',
+    capture_instruction: 'Upload or drag your receipt',
+    capture_formats: 'JPG, PNG or PDF · Max 10MB',
+    take_photo: 'Take photo',
+    choose_file: 'Choose file',
+    ocr_processing: 'Analyzing receipt...',
+    ocr_extracting: 'Extracting data automatically',
+    expense_detail: 'Expense detail',
+    ocr_confidence: 'OCR confidence',
+    basic_info: 'Basic info',
+    provider: 'Provider',
+    date: 'Date',
+    category: 'Category',
+    amounts: 'Amounts',
+    total_amount: 'Total (€)',
+    vat: 'VAT (€)',
+    vat_rate: 'VAT rate (%)',
+    payment_method: 'Payment method',
+    additional: 'Additional',
+    notes: 'Notes / Comments',
+    save_draft: 'Draft',
+    submit: 'Submit',
+    auto: 'AUTO',
+    settings: 'Settings',
+    your_name: 'Your name',
+    language: 'Language',
+    notifications: 'Notifications',
+    notif_desc: 'Push & email',
+    policies: 'Expense policies',
+    cat_food: 'Meals',
+    cat_hotel: 'Hotel',
+    cat_transport: 'Transport',
+    limit: 'Daily limit',
+    limit_night: 'Limit per night',
+    limit_trip: 'Limit per trip',
+    data_export: 'Export data',
+    export_csv: 'Export to CSV (Excel)',
+    nav_home: 'Home',
+    nav_capture: 'Capture',
+    nav_settings: 'Settings',
+    status_draft: 'Draft',
+    status_pending: 'Pending',
+    status_approved: 'Approved',
+    status_rejected: 'Rejected',
+    saved_draft: 'Expense saved as draft',
+    submitted: 'Expense submitted for approval',
+    exported: 'CSV downloaded successfully',
+    policy_warn_food: '⚠️ Meals: daily limit is 50 €',
+    policy_warn_hotel: '⚠️ Hotel: limit per night is 120 €',
+    policy_warn_transport: '⚠️ Transport: limit per trip is 80 €',
+    delete_confirm: 'Are you sure you want to delete this expense?',
+    deleted: 'Expense deleted',
+  }
+};
+
+function t(key) {
+  return i18n[currentLang][key] || key;
+}
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (i18n[currentLang][key]) {
+      el.textContent = i18n[currentLang][key];
+    }
+  });
+  document.getElementById('currentLang').textContent = currentLang === 'es' ? 'Español' : 'English';
+  const toggle = document.getElementById('langToggle');
+  if (currentLang === 'en') toggle.classList.add('active');
+  else toggle.classList.remove('active');
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'es' ? 'en' : 'es';
+  localStorage.setItem('lang', currentLang);
+  applyLang();
+  renderExpenses();
+}
+
+// ===============================================
+// NAVIGATION
+// ===============================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.screen === name);
+  });
+  if (name === 'capture') resetCapture();
+  if (name === 'home') renderExpenses();
+  window.scrollTo(0, 0);
+}
+
+function resetCapture() {
+  document.getElementById('captureZone').classList.remove('hidden');
+  document.querySelector('.capture-buttons').classList.remove('hidden');
+  document.getElementById('ocrProcessing').classList.remove('active');
+  document.getElementById('fileInput').value = '';
+  document.getElementById('cameraInput').value = '';
+  currentImage = null;
+}
+
+// ===============================================
+// FILE HANDLING + DRAG & DROP
+// ===============================================
+const captureZone = document.getElementById('captureZone');
+
+captureZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  captureZone.classList.add('dragover');
+});
+
+captureZone.addEventListener('dragleave', () => {
+  captureZone.classList.remove('dragover');
+});
+
+captureZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  captureZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('Archivo demasiado grande (máx 10MB)', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    currentImage = e.target.result;
+    startOCR(currentImage);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===============================================
+// OCR ENGINE (Tesseract.js)
+// ===============================================
+async function startOCR(imageData) {
+  // Show processing UI
+  document.getElementById('captureZone').classList.add('hidden');
+  document.querySelector('.capture-buttons').classList.add('hidden');
+  const processing = document.getElementById('ocrProcessing');
+  processing.classList.add('active');
+  const progressBar = document.getElementById('ocrProgressBar');
+  progressBar.style.width = '0%';
+
+  try {
+    const worker = await Tesseract.createWorker('spa+eng', 1, {
+      logger: (m) => {
+        if (m.status === 'recognizing text') {
+          progressBar.style.width = Math.round(m.progress * 100) + '%';
+        }
+      }
+    });
+
+    const { data } = await worker.recognize(imageData);
+    await worker.terminate();
+
+    progressBar.style.width = '100%';
+
+    // Parse OCR results
+    const parsed = parseTicketText(data.text, data.confidence);
+
+    // Small delay for UX
+    setTimeout(() => {
+      processing.classList.remove('active');
+      fillForm(parsed);
+      showScreen('form');
+    }, 400);
+
+  } catch (err) {
+    console.error('OCR Error:', err);
+    processing.classList.remove('active');
+    // Even if OCR fails, show the form with empty fields
+    fillForm({ confidence: 0 });
+    showScreen('form');
+    showToast('OCR no disponible — rellena manualmente', 'warning');
+  }
+}
+
+// ===============================================
+// SMART TICKET PARSER
+// ===============================================
+function parseTicketText(text, ocrConfidence) {
+  const result = {
+    provider: '',
+    date: '',
+    total: '',
+    vat: '',
+    vatRate: '',
+    category: '',
+    confidence: ocrConfidence || 0,
+    rawText: text
+  };
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // --- PROVIDER ---
+  // Usually the first 1-3 non-empty lines that aren't numbers/dates
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const line = lines[i];
+    if (line.length > 2 && !/^\d{1,2}[\/\-\.]\d{1,2}/.test(line) && !/^[\d\s,\.€$]+$/.test(line)) {
+      // Skip CIF/NIF lines
+      if (/^[A-Z]\d{7,8}/.test(line) || /^CIF|^NIF|^N\.I\.F/i.test(line)) continue;
+      result.provider = cleanProviderName(line);
+      break;
+    }
+  }
+
+  // --- DATE ---
+  const datePatterns = [
+    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,   // DD/MM/YYYY
+    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{2})/,     // DD/MM/YY
+    /(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/,      // YYYY/MM/DD
+  ];
+
+  for (const line of lines) {
+    for (const pattern of datePatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        let day, month, year;
+        if (match[1].length === 4) {
+          year = match[1]; month = match[2]; day = match[3];
+        } else if (match[3].length === 4) {
+          day = match[1]; month = match[2]; year = match[3];
+        } else {
+          day = match[1]; month = match[2];
+          year = parseInt(match[3]) > 50 ? '19' + match[3] : '20' + match[3];
+        }
+        // Validate
+        const d = parseInt(day), m = parseInt(month);
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12) {
+          result.date = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+          break;
+        }
+      }
+    }
+    if (result.date) break;
+  }
+
+  // --- TOTAL ---
+  const totalPatterns = [
+    /TOTAL\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /IMPORTE\s*TOTAL\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /TOTAL\s*€?\s*(\d+[\.,]\d{2})/i,
+    /TOTAL\s*EUR\s*(\d+[\.,]\d{2})/i,
+    /A\s*PAGAR\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /AMOUNT\s*[\:\s]*(\d+[\.,]\d{2})/i,
+  ];
+
+  for (const line of lines) {
+    for (const pattern of totalPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        result.total = match[1].replace(',', '.');
+        break;
+      }
+    }
+    if (result.total) break;
+  }
+
+  // Fallback: find the largest number as potential total
+  if (!result.total) {
+    let maxVal = 0;
+    for (const line of lines) {
+      const nums = line.match(/(\d+[\.,]\d{2})/g);
+      if (nums) {
+        for (const n of nums) {
+          const val = parseFloat(n.replace(',', '.'));
+          if (val > maxVal && val < 10000) {
+            maxVal = val;
+            result.total = val.toFixed(2);
+          }
+        }
+      }
+    }
+  }
+
+  // --- IVA ---
+  const ivaPatterns = [
+    /I\.?V\.?A\.?\s*[\(\:]?\s*(\d+)\s*%?\)?\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /(\d+)\s*%\s*I\.?V\.?A\.?\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /CUOTA\s*[\:\s]*(\d+[\.,]\d{2})/i,
+    /VAT\s*[\:\s]*(\d+[\.,]\d{2})/i,
+  ];
+
+  for (const line of lines) {
+    for (const pattern of ivaPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        if (match.length >= 3) {
+          result.vatRate = match[1];
+          result.vat = match[2].replace(',', '.');
+        } else {
+          result.vat = match[1].replace(',', '.');
+        }
+        break;
+      }
+    }
+    if (result.vat) break;
+  }
+
+  // If we have total but no VAT, try to calculate
+  if (result.total && !result.vat) {
+    const total = parseFloat(result.total);
+    // Default 10% for restaurants in Spain
+    if (detectCategory(text) === 'comida') {
+      result.vat = (total - total / 1.10).toFixed(2);
+      result.vatRate = '10';
+    }
+  }
+
+  // --- CATEGORY ---
+  result.category = detectCategory(text);
+
+  return result;
+}
+
+function cleanProviderName(name) {
+  return name
+    .replace(/[^\w\sáéíóúñüÁÉÍÓÚÑÜ&\-\.]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 60);
+}
+
+function detectCategory(text) {
+  const t = text.toLowerCase();
+
+  const patterns = {
+    comida: /restauran|cafeter|bar\s|menú|menu|comida|cena|almuerz|desayun|tapas|cervez|pizza|burger|kebab|bocadill|racion|plato|cubierto|mesa|camarero/i,
+    combustible: /gasolina|gasóleo|diesel|gasoil|estación.?servicio|combustible|fuel|repsol|cepsa|bp\s|shell|galp|petrol/i,
+    hotel: /hotel|hostal|alojamiento|habitación|room|check.?in|check.?out|booking|accommodation|pernoctación|lodge|motel|resort/i,
+    parking: /parking|aparcamiento|estacionamiento|garaje|park.?&.?ride|empark|saba\s/i,
+    peaje: /peaje|toll|autopista|via.?t|telepeaje|autopist/i,
+    transporte: /taxi|uber|cabify|bolt|renfe|avión|vuelo|flight|tren|train|bus\s|autobús|metro|billete|ticket.?transport|boarding/i,
+  };
+
+  for (const [cat, regex] of Object.entries(patterns)) {
+    if (regex.test(t)) return cat;
+  }
+
+  return '';
+}
+
+// ===============================================
+// FILL FORM
+// ===============================================
+function fillForm(parsed) {
+  const preview = document.getElementById('ticketPreview');
+  if (currentImage) {
+    preview.src = currentImage;
+    preview.classList.remove('hidden');
+  } else {
+    preview.classList.add('hidden');
+  }
+
+  // Confidence
+  const conf = Math.round(parsed.confidence || 0);
+  const confFill = document.getElementById('confidenceFill');
+  const confValue = document.getElementById('confidenceValue');
+  confValue.textContent = conf + '%';
+  confFill.style.width = conf + '%';
+  confFill.className = 'confidence-fill ' + (conf >= 70 ? 'high' : conf >= 40 ? 'medium' : 'low');
+
+  // Fill fields with auto-fill styling
+  setField('inputProvider', parsed.provider, 'badge-provider');
+  setField('inputDate', parsed.date, 'badge-date');
+  setField('inputTotal', parsed.total, 'badge-total');
+  setField('inputVAT', parsed.vat, 'badge-vat');
+
+  if (parsed.category) {
+    document.getElementById('inputCategory').value = parsed.category;
+    document.getElementById('inputCategory').classList.add('auto-filled');
+    showBadge('badge-category');
+  }
+
+  if (parsed.vatRate) {
+    document.getElementById('inputVATRate').value = parsed.vatRate;
+  }
+
+  // If no date detected, default to today
+  if (!parsed.date) {
+    document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+  }
+
+  // Policy checks
+  checkPolicies();
+}
+
+function setField(id, value, badgeId) {
+  const el = document.getElementById(id);
+  if (value) {
+    el.value = value;
+    el.classList.add('auto-filled');
+    if (badgeId) showBadge(badgeId);
+  } else {
+    el.value = '';
+    el.classList.remove('auto-filled');
+    if (badgeId) hideBadge(badgeId);
+  }
+}
+
+function showBadge(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'inline';
+}
+
+function hideBadge(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+// ===============================================
+// POLICY ENGINE
+// ===============================================
+const POLICIES = {
+  comida: { limit: 50, key: 'policy_warn_food' },
+  hotel: { limit: 120, key: 'policy_warn_hotel' },
+  transporte: { limit: 80, key: 'policy_warn_transport' },
+};
+
+function checkPolicies() {
+  const alerts = document.getElementById('policyAlerts');
+  alerts.innerHTML = '';
+
+  const category = document.getElementById('inputCategory').value;
+  const total = parseFloat(document.getElementById('inputTotal').value) || 0;
+
+  if (category && POLICIES[category] && total > POLICIES[category].limit) {
+    alerts.innerHTML = `
+      <div class="policy-alert warning">
+        <span class="icon">⚠️</span>
+        <span>${t(POLICIES[category].key)}</span>
+      </div>
+    `;
+  }
+
+  // Duplicate check
+  const date = document.getElementById('inputDate').value;
+  const provider = document.getElementById('inputProvider').value.toLowerCase();
+  const isDuplicate = expenses.some(e =>
+    e.date === date &&
+    e.provider.toLowerCase() === provider &&
+    Math.abs(e.total - total) < 0.01
+  );
+
+  if (isDuplicate && provider) {
+    alerts.innerHTML += `
+      <div class="policy-alert error">
+        <span class="icon">🚫</span>
+        <span>${currentLang === 'es' ? 'Posible duplicado: ya existe un gasto similar' : 'Possible duplicate: a similar expense exists'}</span>
+      </div>
+    `;
+  }
+}
+
+// Re-check on input changes
+document.getElementById('inputTotal').addEventListener('input', checkPolicies);
+document.getElementById('inputCategory').addEventListener('change', checkPolicies);
+
+// ===============================================
+// SAVE / SUBMIT
+// ===============================================
+function getFormData(status) {
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
+    provider: document.getElementById('inputProvider').value,
+    date: document.getElementById('inputDate').value,
+    category: document.getElementById('inputCategory').value,
+    total: parseFloat(document.getElementById('inputTotal').value) || 0,
+    vat: parseFloat(document.getElementById('inputVAT').value) || 0,
+    vatRate: document.getElementById('inputVATRate').value,
+    payment: document.getElementById('inputPayment').value,
+    notes: document.getElementById('inputNotes').value,
+    status: status,
+    image: currentImage,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function saveDraft() {
+  const data = getFormData('draft');
+  expenses.unshift(data);
+  saveExpenses();
+  showToast(t('saved_draft'), 'success');
+  showScreen('home');
+}
+
+function submitExpense(e) {
+  e.preventDefault();
+  const data = getFormData('pending');
+  expenses.unshift(data);
+  saveExpenses();
+  showToast(t('submitted'), 'success');
+  showScreen('home');
+}
+
+function saveExpenses() {
+  localStorage.setItem('expenses', JSON.stringify(expenses));
+}
+
+function deleteExpense(id) {
+  if (!confirm(t('delete_confirm'))) return;
+  expenses = expenses.filter(e => e.id !== id);
+  saveExpenses();
+  closeModal();
+  renderExpenses();
+  showToast(t('deleted'), 'success');
+}
+
+// ===============================================
+// RENDER EXPENSES
+// ===============================================
+const CATEGORY_ICONS = {
+  comida: '🍽️',
+  transporte: '🚕',
+  hotel: '🏨',
+  combustible: '⛽',
+  parking: '🅿️',
+  peaje: '🛣️',
+};
+
+const STATUS_MAP = {
+  draft: 'status-draft',
+  pending: 'status-pending',
+  approved: 'status-approved',
+  rejected: 'status-rejected',
+};
+
+function renderExpenses() {
+  const list = document.getElementById('expenseList');
+  const empty = document.getElementById('emptyState');
+
+  if (expenses.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+    list.innerHTML = expenses.slice(0, 20).map(exp => `
+      <div class="expense-item" onclick="showDetail('${exp.id}')">
+        <div class="expense-icon ${exp.category}">
+          ${CATEGORY_ICONS[exp.category] || '📄'}
+        </div>
+        <div class="expense-info">
+          <div class="expense-provider">${exp.provider || (currentLang === 'es' ? 'Sin proveedor' : 'No provider')}</div>
+          <div class="expense-meta">${formatDate(exp.date)} · ${exp.category || '—'}</div>
+        </div>
+        <div>
+          <div class="expense-amount">${formatMoney(exp.total)}</div>
+          <div class="expense-status ${STATUS_MAP[exp.status]}">${t('status_' + exp.status)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Update stats
+  const now = new Date();
+  const monthExpenses = expenses.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const totalMonth = monthExpenses.reduce((sum, e) => sum + e.total, 0);
+  const pendingCount = expenses.filter(e => e.status === 'pending').length;
+
+  document.getElementById('totalMonth').textContent = formatMoney(totalMonth);
+  document.getElementById('pendingCount').textContent = pendingCount;
+
+  // Username
+  const name = localStorage.getItem('userName') || (currentLang === 'es' ? 'Usuario' : 'User');
+  document.getElementById('userName').textContent = name;
+  document.getElementById('settingsName').value = localStorage.getItem('userName') || '';
+}
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString(currentLang === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'short' });
+}
+
+// ===============================================
+// DETAIL MODAL
+// ===============================================
+function showDetail(id) {
+  const exp = expenses.find(e => e.id === id);
+  if (!exp) return;
+
+  const modal = document.getElementById('detailModal');
+  const body = document.getElementById('modalBody');
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div class="expense-icon ${exp.category}" style="width:48px;height:48px;font-size:24px;">
+        ${CATEGORY_ICONS[exp.category] || '📄'}
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;">${exp.provider || '—'}</div>
+        <div style="color:var(--text-muted);font-size:13px;">${formatDate(exp.date)} · ${exp.category || '—'}</div>
+      </div>
+    </div>
+
+    ${exp.image ? `<img src="${exp.image}" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;margin-bottom:16px;background:var(--bg-primary);border:1px solid var(--border);">` : ''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div class="stat-box">
+        <div class="stat-label">${t('total_amount')}</div>
+        <div class="stat-value">${formatMoney(exp.total)}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">${t('vat')}</div>
+        <div class="stat-value" style="font-size:16px;">${formatMoney(exp.vat)}${exp.vatRate ? ' (' + exp.vatRate + '%)' : ''}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${t('payment_method')}</div>
+      <div style="font-size:14px;">${exp.payment === 'tarjeta_corp' ? '💳 Tarjeta corp.' : exp.payment === 'efectivo' ? '💵 Efectivo' : '💳 Tarjeta propia'}</div>
+    </div>
+
+    ${exp.notes ? `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${t('notes')}</div>
+      <div style="font-size:14px;">${exp.notes}</div>
+    </div>
+    ` : ''}
+
+    <div style="margin-bottom:20px;">
+      <span class="expense-status ${STATUS_MAP[exp.status]}" style="font-size:12px;padding:5px 12px;">${t('status_' + exp.status)}</span>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="deleteExpense('${exp.id}')">
+        🗑️ ${currentLang === 'es' ? 'Eliminar' : 'Delete'}
+      </button>
+      <button class="btn btn-secondary" onclick="closeModal()">
+        ${currentLang === 'es' ? 'Cerrar' : 'Close'}
+      </button>
+    </div>
+  `;
+
+  modal.classList.add('show');
+}
+
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+// ===============================================
+// EXPORT CSV
+// ===============================================
+function exportToCSV() {
+  if (expenses.length === 0) {
+    showToast(currentLang === 'es' ? 'No hay datos para exportar' : 'No data to export', 'warning');
+    return;
+  }
+
+  const headers = ['ID', 'Proveedor', 'Fecha', 'Categoría', 'Total (€)', 'IVA (€)', 'Tipo IVA (%)', 'Método pago', 'Estado', 'Notas', 'Creado'];
+  const rows = expenses.map(e => [
+    e.id,
+    `"${e.provider}"`,
+    e.date,
+    e.category,
+    e.total,
+    e.vat,
+    e.vatRate,
+    e.payment,
+    e.status,
+    `"${(e.notes || '').replace(/"/g, '""')}"`,
+    e.createdAt,
+  ]);
+
+  const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gastos_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(t('exported'), 'success');
+}
+
+// ===============================================
+// TOAST
+// ===============================================
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast ' + type + ' show';
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ===============================================
+// SETTINGS
+// ===============================================
+function saveName() {
+  const name = document.getElementById('settingsName').value;
+  localStorage.setItem('userName', name);
+  document.getElementById('userName').textContent = name || 'Usuario';
+}
+
+// ===============================================
+// GREETING
+// ===============================================
+function updateGreeting() {
+  const hour = new Date().getHours();
+  const greetings = {
+    es: hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches',
+    en: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
+  };
+  document.querySelector('[data-i18n="welcome_greeting"]').textContent = greetings[currentLang];
+}
+
+// ===============================================
+// INIT
+// ===============================================
+function init() {
+  currentLang = localStorage.getItem('lang') || 'es';
+  applyLang();
+  updateGreeting();
+  renderExpenses();
+}
+
+init();
+</script>
+
+</body>
+</html>
