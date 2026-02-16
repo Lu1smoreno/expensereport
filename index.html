@@ -923,6 +923,249 @@ textarea.form-input {
 
 .toggle.active::after { left: 23px; }
 
+/* ===== DASHBOARD ===== */
+.dash-period-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dash-period-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.dash-period-btn.active {
+  background: var(--accent);
+  color: #0f172a;
+  border-color: var(--accent);
+}
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dash-kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-kpi-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.dash-kpi-info { min-width: 0; }
+
+.dash-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.dash-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-kpi-value.success { color: var(--success); }
+.dash-kpi-value.warning { color: var(--warning); }
+.dash-kpi-value.danger { color: var(--danger); }
+
+.dash-avg-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dash-avg-box {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dash-avg-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dash-avg-value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dash-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.dash-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dash-category-grid {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-donut-wrap {
+  flex-shrink: 0;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-donut-wrap canvas {
+  max-width: 140px !important;
+  max-height: 140px !important;
+}
+
+.dash-category-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dash-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.dash-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dash-legend-label {
+  flex: 1;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-legend-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.dash-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-provider-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-provider-rank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 20px;
+  text-align: center;
+}
+
+.dash-provider-bar-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-provider-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-provider-bar-bg {
+  height: 6px;
+  background: var(--bg-primary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dash-provider-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #818cf8);
+  transition: width 0.5s ease;
+}
+
+.dash-provider-amount {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
 /* ===== HIDDEN ===== */
 .hidden { display: none !important; }
 
@@ -1221,6 +1464,115 @@ textarea.form-input {
       </button>
     </div>
 
+    <!-- ===== DASHBOARD SCREEN ===== -->
+    <div id="screen-dashboard" class="screen">
+      <div class="back-row">
+        <button class="back-btn" onclick="showScreen('home')">←</button>
+        <div class="screen-title" data-i18n="nav_dashboard">Dashboard</div>
+      </div>
+
+      <!-- Period selector -->
+      <div class="dash-period-row">
+        <button class="dash-period-btn active" data-period="month" onclick="setDashPeriod('month')">
+          <span data-i18n="dash_month">Este mes</span>
+        </button>
+        <button class="dash-period-btn" data-period="quarter" onclick="setDashPeriod('quarter')">
+          <span data-i18n="dash_quarter">Trimestre</span>
+        </button>
+        <button class="dash-period-btn" data-period="year" onclick="setDashPeriod('year')">
+          <span data-i18n="dash_year">Año</span>
+        </button>
+        <button class="dash-period-btn" data-period="all" onclick="setDashPeriod('all')">
+          <span data-i18n="dash_all">Todo</span>
+        </button>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="dash-kpis">
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon" style="background: rgba(56,189,248,0.12);">💰</div>
+          <div class="dash-kpi-info">
+            <div class="dash-kpi-label" data-i18n="dash_total_spend">Gasto total</div>
+            <div class="dash-kpi-value" id="dashTotalSpend">0 €</div>
+          </div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon" style="background: rgba(52,211,153,0.12);">✅</div>
+          <div class="dash-kpi-info">
+            <div class="dash-kpi-label" data-i18n="dash_approved">Aprobados</div>
+            <div class="dash-kpi-value success" id="dashApproved">0</div>
+          </div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon" style="background: rgba(251,191,36,0.12);">⏳</div>
+          <div class="dash-kpi-info">
+            <div class="dash-kpi-label" data-i18n="dash_pending">Pendientes</div>
+            <div class="dash-kpi-value warning" id="dashPending">0</div>
+          </div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dash-kpi-icon" style="background: rgba(248,113,113,0.12);">⚠️</div>
+          <div class="dash-kpi-info">
+            <div class="dash-kpi-label" data-i18n="dash_policy_breaks">Incumplimientos</div>
+            <div class="dash-kpi-value danger" id="dashPolicyBreaks">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average per expense -->
+      <div class="dash-avg-row">
+        <div class="dash-avg-box">
+          <span class="dash-avg-label" data-i18n="dash_avg_expense">Media por gasto</span>
+          <span class="dash-avg-value" id="dashAvg">0 €</span>
+        </div>
+        <div class="dash-avg-box">
+          <span class="dash-avg-label" data-i18n="dash_count">Nº gastos</span>
+          <span class="dash-avg-value" id="dashCount">0</span>
+        </div>
+      </div>
+
+      <!-- Monthly trend chart -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title" data-i18n="dash_monthly_trend">Evolución mensual</div>
+        <canvas id="chartMonthly" height="200"></canvas>
+      </div>
+
+      <!-- Category breakdown -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title" data-i18n="dash_by_category">Gasto por categoría</div>
+        <div class="dash-category-grid">
+          <div class="dash-donut-wrap">
+            <canvas id="chartCategory" height="180" width="180"></canvas>
+          </div>
+          <div class="dash-category-legend" id="categoryLegend"></div>
+        </div>
+      </div>
+
+      <!-- Top providers -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title" data-i18n="dash_top_providers">Top proveedores</div>
+        <div id="topProviders" class="dash-provider-list"></div>
+      </div>
+
+      <!-- Status breakdown -->
+      <div class="dash-chart-card">
+        <div class="dash-chart-title" data-i18n="dash_by_status">Por estado</div>
+        <canvas id="chartStatus" height="120"></canvas>
+      </div>
+
+      <!-- Export buttons -->
+      <div class="form-actions" style="margin-top: 16px;">
+        <button class="btn btn-secondary" onclick="exportToCSV()">
+          <span>📊</span>
+          <span>CSV</span>
+        </button>
+        <button class="btn btn-primary" onclick="exportDashPDF()">
+          <span>📄</span>
+          <span data-i18n="dash_export_report">Informe PDF</span>
+        </button>
+      </div>
+    </div>
+
   </main>
 
   <!-- BOTTOM NAV -->
@@ -1232,6 +1584,10 @@ textarea.form-input {
     <button class="nav-item" data-screen="capture" onclick="showScreen('capture')">
       <span class="icon">📸</span>
       <span class="label" data-i18n="nav_capture">Capturar</span>
+    </button>
+    <button class="nav-item" data-screen="dashboard" onclick="showScreen('dashboard')">
+      <span class="icon">📊</span>
+      <span class="label" data-i18n="nav_dashboard">Dashboard</span>
     </button>
     <button class="nav-item" data-screen="settings" onclick="showScreen('settings')">
       <span class="icon">⚙️</span>
@@ -1250,6 +1606,9 @@ textarea.form-input {
     <div id="modalBody"></div>
   </div>
 </div>
+
+<!-- CHART.JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
 <!-- TESSERACT.JS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -1325,6 +1684,23 @@ const i18n = {
     policy_warn_transport: '⚠️ Transporte: el límite por viaje es de 80 €',
     delete_confirm: '¿Seguro que quieres eliminar este gasto?',
     deleted: 'Gasto eliminado',
+    nav_dashboard: 'Dashboard',
+    dash_month: 'Este mes',
+    dash_quarter: 'Trimestre',
+    dash_year: 'Año',
+    dash_all: 'Todo',
+    dash_total_spend: 'Gasto total',
+    dash_approved: 'Aprobados',
+    dash_pending: 'Pendientes',
+    dash_policy_breaks: 'Incumplimientos',
+    dash_avg_expense: 'Media por gasto',
+    dash_count: 'Nº gastos',
+    dash_monthly_trend: 'Evolución mensual',
+    dash_by_category: 'Gasto por categoría',
+    dash_top_providers: 'Top proveedores',
+    dash_by_status: 'Por estado',
+    dash_export_report: 'Informe PDF',
+    dash_no_data: 'Añade gastos para ver el dashboard',
   },
   en: {
     welcome_greeting: 'Good morning',
@@ -1385,6 +1761,23 @@ const i18n = {
     policy_warn_transport: '⚠️ Transport: limit per trip is 80 €',
     delete_confirm: 'Are you sure you want to delete this expense?',
     deleted: 'Expense deleted',
+    nav_dashboard: 'Dashboard',
+    dash_month: 'This month',
+    dash_quarter: 'Quarter',
+    dash_year: 'Year',
+    dash_all: 'All',
+    dash_total_spend: 'Total spend',
+    dash_approved: 'Approved',
+    dash_pending: 'Pending',
+    dash_policy_breaks: 'Policy breaks',
+    dash_avg_expense: 'Avg per expense',
+    dash_count: 'Nº expenses',
+    dash_monthly_trend: 'Monthly trend',
+    dash_by_category: 'Spend by category',
+    dash_top_providers: 'Top providers',
+    dash_by_status: 'By status',
+    dash_export_report: 'PDF Report',
+    dash_no_data: 'Add expenses to see the dashboard',
   }
 };
 
@@ -1423,6 +1816,7 @@ function showScreen(name) {
   });
   if (name === 'capture') resetCapture();
   if (name === 'home') renderExpenses();
+  if (name === 'dashboard') renderDashboard();
   window.scrollTo(0, 0);
 }
 
@@ -2321,6 +2715,313 @@ function updateGreeting() {
     en: hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening',
   };
   document.querySelector('[data-i18n="welcome_greeting"]').textContent = greetings[currentLang];
+}
+
+// ===============================================
+// DASHBOARD
+// ===============================================
+let dashPeriod = 'month';
+let chartMonthlyInst = null;
+let chartCategoryInst = null;
+let chartStatusInst = null;
+
+const CATEGORY_COLORS = {
+  comida: '#fb923c',
+  transporte: '#60a5fa',
+  hotel: '#a78bfa',
+  combustible: '#34d399',
+  parking: '#fbbf24',
+  peaje: '#f87171',
+  '': '#64748b',
+};
+
+const CATEGORY_NAMES = {
+  es: { comida: 'Comidas', transporte: 'Transporte', hotel: 'Hotel', combustible: 'Combustible', parking: 'Parking', peaje: 'Peaje', '': 'Otros' },
+  en: { comida: 'Meals', transporte: 'Transport', hotel: 'Hotel', combustible: 'Fuel', parking: 'Parking', peaje: 'Toll', '': 'Other' },
+};
+
+function setDashPeriod(period) {
+  dashPeriod = period;
+  document.querySelectorAll('.dash-period-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.period === period);
+  });
+  renderDashboard();
+}
+
+function getFilteredExpenses() {
+  const now = new Date();
+  return expenses.filter(e => {
+    if (dashPeriod === 'all') return true;
+    const d = new Date(e.date);
+    if (dashPeriod === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (dashPeriod === 'quarter') {
+      const q = Math.floor(now.getMonth() / 3);
+      const eq = Math.floor(d.getMonth() / 3);
+      return eq === q && d.getFullYear() === now.getFullYear();
+    }
+    if (dashPeriod === 'year') return d.getFullYear() === now.getFullYear();
+    return true;
+  });
+}
+
+function renderDashboard() {
+  const filtered = getFilteredExpenses();
+
+  // --- KPIs ---
+  const totalSpend = filtered.reduce((s, e) => s + e.total, 0);
+  const approved = filtered.filter(e => e.status === 'approved').length;
+  const pending = filtered.filter(e => e.status === 'pending').length;
+  const policyBreaks = filtered.filter(e => {
+    const pol = POLICIES[e.category];
+    return pol && e.total > pol.limit;
+  }).length;
+  const avg = filtered.length > 0 ? totalSpend / filtered.length : 0;
+
+  document.getElementById('dashTotalSpend').textContent = formatMoney(totalSpend);
+  document.getElementById('dashApproved').textContent = approved;
+  document.getElementById('dashPending').textContent = pending;
+  document.getElementById('dashPolicyBreaks').textContent = policyBreaks;
+  document.getElementById('dashAvg').textContent = formatMoney(avg);
+  document.getElementById('dashCount').textContent = filtered.length;
+
+  // --- Monthly trend chart ---
+  renderMonthlyChart(filtered);
+
+  // --- Category donut ---
+  renderCategoryChart(filtered);
+
+  // --- Top providers ---
+  renderTopProviders(filtered);
+
+  // --- Status bar chart ---
+  renderStatusChart(filtered);
+}
+
+function renderMonthlyChart(data) {
+  const canvas = document.getElementById('chartMonthly');
+  if (!canvas) return;
+
+  // Group by month
+  const months = {};
+  data.forEach(e => {
+    const d = new Date(e.date);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    months[key] = (months[key] || 0) + e.total;
+  });
+
+  // Sort and get last 12 months max
+  const sortedKeys = Object.keys(months).sort().slice(-12);
+  const labels = sortedKeys.map(k => {
+    const [y, m] = k.split('-');
+    const d = new Date(parseInt(y), parseInt(m) - 1);
+    return d.toLocaleDateString(currentLang === 'es' ? 'es-ES' : 'en-GB', { month: 'short', year: '2-digit' });
+  });
+  const values = sortedKeys.map(k => months[k]);
+
+  if (chartMonthlyInst) chartMonthlyInst.destroy();
+
+  chartMonthlyInst = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels.length ? labels : [currentLang === 'es' ? 'Sin datos' : 'No data'],
+      datasets: [{
+        data: values.length ? values : [0],
+        backgroundColor: 'rgba(56, 189, 248, 0.3)',
+        borderColor: '#38bdf8',
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: (ctx) => formatMoney(ctx.raw) }
+      }},
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(51,65,85,0.5)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '€' } },
+      }
+    }
+  });
+}
+
+function renderCategoryChart(data) {
+  const canvas = document.getElementById('chartCategory');
+  if (!canvas) return;
+
+  const catTotals = {};
+  data.forEach(e => {
+    const cat = e.category || '';
+    catTotals[cat] = (catTotals[cat] || 0) + e.total;
+  });
+
+  const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]);
+  const values = cats.map(c => catTotals[c]);
+  const colors = cats.map(c => CATEGORY_COLORS[c] || '#64748b');
+  const names = cats.map(c => (CATEGORY_NAMES[currentLang] || CATEGORY_NAMES.es)[c] || c || 'Otros');
+  const total = values.reduce((s, v) => s + v, 0);
+
+  if (chartCategoryInst) chartCategoryInst.destroy();
+
+  chartCategoryInst = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: names.length ? names : ['—'],
+      datasets: [{
+        data: values.length ? values : [1],
+        backgroundColor: colors.length ? colors : ['#334155'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: false,
+      cutout: '60%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: (ctx) => formatMoney(ctx.raw) + ' (' + Math.round(ctx.raw / total * 100) + '%)' }
+      }},
+    }
+  });
+
+  // Legend
+  const legend = document.getElementById('categoryLegend');
+  legend.innerHTML = cats.map((c, i) => `
+    <div class="dash-legend-item">
+      <div class="dash-legend-dot" style="background:${colors[i]}"></div>
+      <span class="dash-legend-label">${names[i]}</span>
+      <span class="dash-legend-value">${formatMoney(values[i])}</span>
+    </div>
+  `).join('') || `<span style="color:var(--text-muted);font-size:12px;">${t('dash_no_data')}</span>`;
+}
+
+function renderTopProviders(data) {
+  const container = document.getElementById('topProviders');
+  const provTotals = {};
+  data.forEach(e => {
+    const p = e.provider || (currentLang === 'es' ? 'Sin proveedor' : 'No provider');
+    provTotals[p] = (provTotals[p] || 0) + e.total;
+  });
+
+  const sorted = Object.entries(provTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxVal = sorted.length ? sorted[0][1] : 1;
+
+  container.innerHTML = sorted.map(([name, amount], i) => `
+    <div class="dash-provider-item">
+      <span class="dash-provider-rank">${i + 1}</span>
+      <div class="dash-provider-bar-wrap">
+        <div class="dash-provider-name">${name}</div>
+        <div class="dash-provider-bar-bg">
+          <div class="dash-provider-bar" style="width:${Math.round(amount / maxVal * 100)}%"></div>
+        </div>
+      </div>
+      <span class="dash-provider-amount">${formatMoney(amount)}</span>
+    </div>
+  `).join('') || `<span style="color:var(--text-muted);font-size:12px;">${t('dash_no_data')}</span>`;
+}
+
+function renderStatusChart(data) {
+  const canvas = document.getElementById('chartStatus');
+  if (!canvas) return;
+
+  const statusCounts = { draft: 0, pending: 0, approved: 0, rejected: 0 };
+  data.forEach(e => { if (statusCounts.hasOwnProperty(e.status)) statusCounts[e.status]++; });
+
+  const statusLabels = {
+    es: ['Borrador', 'Pendiente', 'Aprobado', 'Rechazado'],
+    en: ['Draft', 'Pending', 'Approved', 'Rejected']
+  };
+
+  if (chartStatusInst) chartStatusInst.destroy();
+
+  chartStatusInst = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: statusLabels[currentLang] || statusLabels.es,
+      datasets: [{
+        data: [statusCounts.draft, statusCounts.pending, statusCounts.approved, statusCounts.rejected],
+        backgroundColor: ['#64748b', '#fbbf24', '#34d399', '#f87171'],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(51,65,85,0.5)' }, ticks: { color: '#64748b', stepSize: 1 } },
+        y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+      }
+    }
+  });
+}
+
+function exportDashPDF() {
+  // Generate a printable HTML report and open in new tab for PDF save
+  const filtered = getFilteredExpenses();
+  const totalSpend = filtered.reduce((s, e) => s + e.total, 0);
+  const byCategory = {};
+  filtered.forEach(e => {
+    const cat = e.category || 'otros';
+    byCategory[cat] = (byCategory[cat] || 0) + e.total;
+  });
+
+  const catRows = Object.entries(byCategory)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, amount]) => `<tr><td>${(CATEGORY_NAMES[currentLang] || CATEGORY_NAMES.es)[cat] || cat}</td><td style="text-align:right;font-weight:bold;">${formatMoney(amount)}</td></tr>`)
+    .join('');
+
+  const expRows = filtered
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map(e => `<tr>
+      <td>${e.date}</td>
+      <td>${e.provider}</td>
+      <td>${(CATEGORY_NAMES[currentLang] || CATEGORY_NAMES.es)[e.category] || e.category || '—'}</td>
+      <td style="text-align:right;">${formatMoney(e.total)}</td>
+      <td>${t('status_' + e.status)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>ExpenseFlow Report</title>
+    <style>
+      body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#1e293b;padding:0 20px;}
+      h1{color:#0f172a;border-bottom:3px solid #38bdf8;padding-bottom:8px;}
+      h2{color:#334155;margin-top:30px;}
+      table{width:100%;border-collapse:collapse;margin:12px 0;}
+      th,td{padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:13px;}
+      th{background:#f8fafc;font-weight:600;color:#64748b;text-transform:uppercase;font-size:11px;}
+      .kpi-row{display:flex;gap:16px;margin:16px 0;}
+      .kpi{flex:1;background:#f8fafc;border-radius:8px;padding:16px;text-align:center;}
+      .kpi-value{font-size:24px;font-weight:700;color:#0f172a;}
+      .kpi-label{font-size:12px;color:#64748b;margin-top:4px;}
+      .footer{margin-top:40px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;}
+      @media print{body{margin:0;}}
+    </style>
+  </head><body>
+    <h1>📊 ExpenseFlow — ${currentLang === 'es' ? 'Informe de Gastos' : 'Expense Report'}</h1>
+    <p style="color:#64748b;">${currentLang === 'es' ? 'Generado el' : 'Generated on'} ${new Date().toLocaleDateString(currentLang === 'es' ? 'es-ES' : 'en-GB', { dateStyle: 'long' })}</p>
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-value">${formatMoney(totalSpend)}</div><div class="kpi-label">${t('dash_total_spend')}</div></div>
+      <div class="kpi"><div class="kpi-value">${filtered.length}</div><div class="kpi-label">${t('dash_count')}</div></div>
+      <div class="kpi"><div class="kpi-value">${filtered.length ? formatMoney(totalSpend / filtered.length) : '0 €'}</div><div class="kpi-label">${t('dash_avg_expense')}</div></div>
+    </div>
+
+    <h2>${t('dash_by_category')}</h2>
+    <table><thead><tr><th>${t('category')}</th><th style="text-align:right;">${t('total_amount')}</th></tr></thead><tbody>${catRows}</tbody></table>
+
+    <h2>${currentLang === 'es' ? 'Detalle de gastos' : 'Expense detail'}</h2>
+    <table><thead><tr><th>${t('date')}</th><th>${t('provider')}</th><th>${t('category')}</th><th style="text-align:right;">${t('total_amount')}</th><th>Estado</th></tr></thead><tbody>${expRows}</tbody></table>
+
+    <div class="footer">ExpenseFlow · ${currentLang === 'es' ? 'Informe autogenerado' : 'Auto-generated report'}</div>
+    <script>window.print();<\/script>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 // ===============================================
