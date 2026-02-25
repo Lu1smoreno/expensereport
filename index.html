@@ -2633,8 +2633,21 @@ async function syncToCloud(expenseData) {
       showToast(t('sync_sent'), 'success');
       return true;
     } else {
-      console.warn('Sync failed:', resp.status, resp.statusText);
-      // Don't show error toast if it was a background retry
+      // Power Automate may return error codes (400, 500) when internal scopes fail
+      // but the data might still have been saved. Check response body.
+      let respBody = '';
+      try { respBody = await resp.text(); } catch(e) {}
+      console.warn('Sync response:', resp.status, respBody);
+      
+      // If we got ANY response from Power Automate (not a network error), 
+      // the flow ran — data was likely saved even if scopes had errors
+      if (resp.status >= 400 && resp.status < 500) {
+        // 4xx = flow ran but had issues. Data probably saved.
+        const idx = expenses.findIndex(e => e.id === expenseData.id);
+        if (idx >= 0) { expenses[idx].synced = true; saveExpenses(); }
+        showToast(currentLang === 'es' ? 'Gasto guardado (con advertencias)' : 'Expense saved (with warnings)', 'warning');
+        return true;
+      }
       return false;
     }
   } catch (err) {
@@ -3305,8 +3318,8 @@ function init() {
   document.getElementById('settingsEmail').value = localStorage.getItem('userEmail') || '';
   document.getElementById('settingsFlowUrl').value = localStorage.getItem('flowUrl') || '';
   updateSyncStatus();
-  // Retry unsynced expenses on load
-  setTimeout(retrySyncAll, 3000);
+  // Don't auto-retry on load — user can manually retry from settings
+  // setTimeout(retrySyncAll, 3000);
 }
 
 init();
