@@ -2460,7 +2460,7 @@ async function syncToCloud(expenseData) {
       taxId: expenseData.taxId || '',
       
       // Send image only if it's a real base64 image
-      image: (expenseData.image && expenseData.image.startsWith('data:')) ? expenseData.image : null,
+      image: (expenseData.image && expenseData.image.startsWith('data:')) ? expenseData.image : "",
     };
 
     const resp = await fetch(flowUrl, {
