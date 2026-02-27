@@ -1301,7 +1301,36 @@ textarea.form-input { resize: vertical; min-height: 60px; }
             </div>
           </div>
         </div>
-
+<div class="form-section">
+          <div class="form-section-title">
+            <span style="opacity:0.6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span>
+            <span data-i18n="location_tax">Localización y Fiscalidad</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">
+                <span data-i18n="address">Dirección</span>
+                <span class="auto-badge" id="badge-address" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="text" class="form-input" id="inputAddress" placeholder="Ej: Calle Mayor 15">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="city">Ciudad</span>
+                <span class="auto-badge" id="badge-city" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="text" class="form-input" id="inputCity" placeholder="Ej: Madrid">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span data-i18n="tax_id">NIF / Tax ID</span>
+                <span class="auto-badge" id="badge-taxId" data-i18n="auto">AUTO</span>
+              </label>
+              <input type="text" class="form-input" id="inputTaxId" placeholder="Ej: B12345678">
+            </div>
+          </div>
+        </div>
+        
         <div class="form-section">
           <div class="form-section-title">
             <span style="opacity:0.6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
@@ -1400,6 +1429,12 @@ textarea.form-input { resize: vertical; min-height: 60px; }
         <div id="syncBadge" class="sync-badge offline">OFF</div>
       </div>
 
+      <div class="form-group" style="margin-top: 12px;">
+        <label class="form-label" style="color: var(--accent);" data-i18n="ocr_url">URL del Motor OCR (AI Builder)</label>
+        <input type="url" class="form-input" id="settingsOcrUrl" placeholder="https://prod-xx..." onchange="saveOcrUrl()">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" data-i18n="ocr_url_help">Pega aquí la URL HTTP POST del flujo que lee los tickets</div>
+      </div>
+      
       <div class="form-group" style="margin-top: 12px;">
         <label class="form-label" data-i18n="flow_url">URL del flujo de Power Automate</label>
         <input type="url" class="form-input" id="settingsFlowUrl" placeholder="https://prod-xx.westeurope.logic.azure.com/..." onchange="saveFlowUrl()">
@@ -1589,8 +1624,6 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 <!-- CHART.JS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-<!-- TESSERACT.JS CDN -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <script>
 // ===============================================
@@ -1648,6 +1681,12 @@ const i18n = {
     save_draft: 'Borrador',
     submit: 'Enviar',
     auto: 'AUTO',
+    location_tax: 'Localización y Fiscalidad',
+    address: 'Dirección',
+    city: 'Ciudad',
+    tax_id: 'NIF / Tax ID',
+    ocr_url: 'URL del Motor OCR (AI Builder)',
+    ocr_url_help: 'Pega aquí la URL HTTP POST del flujo que lee los tickets',
     settings: 'Ajustes',
     your_name: 'Tu nombre',
     language: 'Idioma',
@@ -1747,6 +1786,12 @@ const i18n = {
     save_draft: 'Draft',
     submit: 'Submit',
     auto: 'AUTO',
+    location_tax: 'Location & Tax Info',
+    address: 'Address',
+    city: 'City',
+    tax_id: 'VAT / Tax ID',
+    ocr_url: 'OCR Engine URL (AI Builder)',
+    ocr_url_help: 'Paste the HTTP POST URL of your receipt flow here',
     settings: 'Settings',
     your_name: 'Your name',
     language: 'Language',
@@ -1907,35 +1952,69 @@ function processFile(file) {
 }
 
 // ===============================================
-// OCR ENGINE (Tesseract.js)
+// OCR ENGINE (Power Automate + AI Builder)
 // ===============================================
 async function startOCR(imageData) {
-  // Show processing UI
+  // Mostrar UI de carga
   document.getElementById('captureZone').classList.add('hidden');
   document.querySelector('.capture-buttons').classList.add('hidden');
   const processing = document.getElementById('ocrProcessing');
   processing.classList.add('active');
   const progressBar = document.getElementById('ocrProgressBar');
-  progressBar.style.width = '0%';
+  progressBar.style.width = '30%';
+
+  const ocrUrl = document.getElementById('settingsOcrUrl').value.trim();
+
+  // Si no hay URL configurada, abrimos el formulario vacío
+  if (!ocrUrl) {
+    showToast(currentLang === 'es' ? 'Falta la URL del Motor OCR en Ajustes' : 'OCR Engine URL missing in Settings', 'error');
+    processing.classList.remove('active');
+    fillForm({ confidence: 0 }); 
+    showScreen('form');
+    return;
+  }
 
   try {
-    const worker = await Tesseract.createWorker('spa+eng', 1, {
-      logger: (m) => {
-        if (m.status === 'recognizing text') {
-          progressBar.style.width = Math.round(m.progress * 100) + '%';
-        }
-      }
+    // 1. Enviar la imagen a Power Automate
+    progressBar.style.width = '60%';
+    const response = await fetch(ocrUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageData })
     });
 
-    const { data } = await worker.recognize(imageData);
-    await worker.terminate();
+    progressBar.style.width = '90%';
 
+    if (!response.ok) throw new Error('Error en la conexión con AI Builder');
+
+    // 2. Recibir los datos limpios
+    const data = await response.json();
     progressBar.style.width = '100%';
 
-    // Parse OCR results
-    const parsed = parseTicketText(data.text, data.confidence);
+    // 3. Limpieza de seguridad (por si AI Builder no separa la ciudad de la dirección)
+    let finalCity = data.city || '';
+    let finalAddress = data.address || '';
 
-    // Small delay for UX
+    if (finalAddress && !finalCity) {
+      const cpMatch = finalAddress.match(/\b(\d{5})\b\s*([A-Za-zÁÉÍÓÚáéíóúÑñÄÖÜäöüß\s]+)/i);
+      if (cpMatch) {
+        finalCity = cpMatch[2].trim();
+      }
+    }
+
+    // 4. Preparar el objeto para el formulario
+    const parsed = {
+      provider: data.provider || '',
+      date: data.date || '',
+      total: data.total || '',
+      vat: data.tax || '',
+      address: finalAddress,
+      city: finalCity,
+      taxId: data.taxId || '',
+      category: detectCategory(data.provider || ''), // Intenta deducir la categoría
+      confidence: 98 // Fiabilidad casi perfecta con IA
+    };
+
     setTimeout(() => {
       processing.classList.remove('active');
       fillForm(parsed);
@@ -1945,261 +2024,10 @@ async function startOCR(imageData) {
   } catch (err) {
     console.error('OCR Error:', err);
     processing.classList.remove('active');
-    // Even if OCR fails, show the form with empty fields
     fillForm({ confidence: 0 });
+    showToast(currentLang === 'es' ? 'Error al procesar con IA. Rellena a mano.' : 'AI processing error', 'error');
     showScreen('form');
-    showToast('OCR no disponible — rellena manualmente', 'warning');
   }
-}
-
-// ===============================================
-// SMART TICKET PARSER v2 — Improved for complex tickets
-// ===============================================
-function parseTicketText(text, ocrConfidence) {
-  const result = {
-    provider: '',
-    date: '',
-    total: '',
-    vat: '',
-    vatRate: '',
-    category: '',
-    confidence: ocrConfidence || 0,
-    rawText: text
-  };
-
-  // Clean OCR artifacts and normalize text
-  const cleanedText = text
-    .replace(/[|¥©®™°]/g, '')
-    .replace(/\s{3,}/g, '  ')
-    .replace(/(\d)\s+([.,])\s+(\d)/g, '$1$2$3');  // Fix split decimals: "12 , 50" → "12,50"
-
-  const lines = cleanedText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-  // --- PROVIDER (improved) ---
-  // Skip noise lines (short, numeric, fiscal IDs, addresses with numbers)
-  const skipLinePatterns = [
-    /^[A-Z0-9]{1,3}$/,                          // Very short codes
-    /^[A-Z]\s?\d{7,8}/i,                        // CIF: B12345678
-    /^CIF|^NIF|^N\.?I\.?F|^C\.?I\.?F/i,        // Fiscal ID labels
-    /^\d{5}/,                                     // Postal codes
-    /^TEL|^TLF|^FAX|^PHONE/i,                   // Phone lines
-    /^www\.|^http|^@/i,                          // URLs/emails
-    /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/,  // Date lines
-    /^[\d\s,\.€$%]+$/,                           // Pure number lines
-    /^-{3,}|^={3,}|^\*{3,}/,                    // Separator lines
-    /^TICKET|^FACTURA|^RECIBO|^RECEIPT|^INVOICE/i, // Document type headers
-    /^ORIGINAL|^COPIA|^DUPLICADO/i,              // Copy indicators
-  ];
-
-  for (let i = 0; i < Math.min(8, lines.length); i++) {
-    const line = lines[i];
-    if (line.length < 3) continue;
-    let skip = false;
-    for (const pattern of skipLinePatterns) {
-      if (pattern.test(line)) { skip = true; break; }
-    }
-    if (skip) continue;
-    // Found a good provider candidate
-    result.provider = cleanProviderName(line);
-    break;
-  }
-
-  // --- DATE (improved — scan ALL lines, prefer lines with date keywords) ---
-  const datePatterns = [
-    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/,   // DD/MM/YYYY
-    /(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})/,    // YYYY/MM/DD
-    /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{2})/,    // DD/MM/YY
-  ];
-
-  // First pass: lines containing "fecha", "date", etc.
-  const dateKeywords = /fecha|date|data|fch/i;
-  const allLines = [...lines];
-  const priorityLines = allLines.filter(l => dateKeywords.test(l));
-  const linesToScan = [...priorityLines, ...allLines];
-
-  for (const line of linesToScan) {
-    if (result.date) break;
-    for (const pattern of datePatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        let day, month, year;
-        if (match[1].length === 4) {
-          year = match[1]; month = match[2]; day = match[3];
-        } else if (match[3].length === 4) {
-          day = match[1]; month = match[2]; year = match[3];
-        } else {
-          day = match[1]; month = match[2];
-          year = parseInt(match[3]) > 50 ? '19' + match[3] : '20' + match[3];
-        }
-        const d = parseInt(day), m = parseInt(month), y = parseInt(year);
-        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2020 && y <= 2030) {
-          result.date = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-          break;
-        }
-      }
-    }
-  }
-
-  // --- TOTAL (v2: scan from BOTTOM up, prefer the LAST "total" match) ---
-  // In multi-line tickets, the real total is usually at the bottom
-  const totalPatterns = [
-    { regex: /TOTAL\s*A\s*PAGAR\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 10 },
-    { regex: /IMPORTE\s*TOTAL\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 9 },
-    { regex: /TOTAL\s*FACTURA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 9 },
-    { regex: /TOTAL\s*EUR\s*[\:\s]*(\d+[\.,]\d{2})/i, priority: 8 },
-    { regex: /A\s*PAGAR\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 8 },
-    { regex: /AMOUNT\s*DUE\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 8 },
-    { regex: /TOTAL\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 7 },
-    { regex: /EFECTIVO\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
-    { regex: /TARJETA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
-    { regex: /VISA\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
-    { regex: /MASTERCARD\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 5 },
-    { regex: /ENTREGADO\s*[\:\s€]*(\d+[\.,]\d{2})/i, priority: 4 },
-  ];
-
-  // Also patterns to EXCLUDE from being the total (subtotals, bases, etc.)
-  const notTotalPatterns = /SUBTOTAL|BASE\s*IMP|NETO|DESCUENTO|DTO|CAMBIO|ENTREGADO|DEVOL/i;
-
-  let bestTotal = { value: '', priority: 0, lineIndex: -1 };
-
-  // Scan from bottom to top (reverse)
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i];
-    for (const tp of totalPatterns) {
-      const match = line.match(tp.regex);
-      if (match) {
-        const val = match[1].replace(',', '.');
-        const numVal = parseFloat(val);
-        // Skip suspiciously small or large values
-        if (numVal < 0.01 || numVal > 50000) continue;
-        // Prioritize: higher priority pattern OR same priority but later in ticket
-        if (tp.priority > bestTotal.priority ||
-            (tp.priority === bestTotal.priority && i > bestTotal.lineIndex)) {
-          // But skip if the line also matches a "not total" pattern (unless it's highest priority)
-          if (tp.priority < 8 && notTotalPatterns.test(line)) continue;
-          bestTotal = { value: val, priority: tp.priority, lineIndex: i };
-        }
-      }
-    }
-  }
-
-  if (bestTotal.value) {
-    result.total = bestTotal.value;
-  } else {
-    // Fallback: largest number in the last third of the ticket
-    let maxVal = 0;
-    const startLine = Math.floor(lines.length * 0.5); // Only look at bottom half
-    for (let i = startLine; i < lines.length; i++) {
-      const nums = lines[i].match(/(\d+[\.,]\d{2})/g);
-      if (nums) {
-        for (const n of nums) {
-          const val = parseFloat(n.replace(',', '.'));
-          if (val > maxVal && val < 10000) {
-            maxVal = val;
-            result.total = val.toFixed(2);
-          }
-        }
-      }
-    }
-  }
-
-  // --- IVA / VAT (v2: much more comprehensive Spanish patterns) ---
-  const ivaResults = [];
-
-  const ivaPatterns = [
-    // "IVA 10%: 1,50" or "I.V.A. 10% 1,50"
-    { regex: /I\.?V\.?A\.?\s*[\(\:]?\s*(\d+)\s*%\)?\s*[\:\s]*(\d+[\.,]\d{2})/i, rateGroup: 1, amountGroup: 2 },
-    // "10% IVA: 1,50" or "10% I.V.A. 1,50"
-    { regex: /(\d+)\s*%\s*I\.?V\.?A\.?\s*[\:\s]*(\d+[\.,]\d{2})/i, rateGroup: 1, amountGroup: 2 },
-    // "CUOTA IVA: 1,50" or "CUOTA: 1,50"
-    { regex: /CUOTA\s*(?:I\.?V\.?A\.?)?\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
-    // "IVA REPERCUTIDO: 1,50"
-    { regex: /I\.?V\.?A\.?\s*REPERC\w*\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
-    // "IVA INCLUIDO" — means VAT is included in total, try to find the rate
-    { regex: /I\.?V\.?A\.?\s*(?:INCL\w*|INC)\s*/i, included: true },
-    // "IMPUESTOS: 1,50" or "TAX: 1,50"
-    { regex: /(?:IMPUESTO|TAX)\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
-    // "VAT: 1,50"
-    { regex: /VAT\s*[\:\s]*(\d+[\.,]\d{2})/i, amountGroup: 1 },
-    // "BASE IMPONIBLE: 10,00" — we can derive VAT from this + total
-    { regex: /BASE\s*(?:IMP\w*|GRAV\w*)?\s*[\:\s]*(\d+[\.,]\d{2})/i, isBase: true, amountGroup: 1 },
-    // Specific rates: "21%  3,50" or "10%  1,20" on their own line
-    { regex: /^(\d+)\s*%\s+(\d+[\.,]\d{2})$/i, rateGroup: 1, amountGroup: 2 },
-  ];
-
-  let baseImponible = null;
-  let ivaIncluded = false;
-
-  for (const line of lines) {
-    for (const ip of ivaPatterns) {
-      const match = line.match(ip.regex);
-      if (match) {
-        if (ip.included) {
-          ivaIncluded = true;
-          continue;
-        }
-        if (ip.isBase) {
-          baseImponible = parseFloat(match[ip.amountGroup].replace(',', '.'));
-          continue;
-        }
-        const ivaEntry = {};
-        if (ip.amountGroup) ivaEntry.amount = match[ip.amountGroup].replace(',', '.');
-        if (ip.rateGroup) ivaEntry.rate = match[ip.rateGroup];
-        if (ivaEntry.amount) ivaResults.push(ivaEntry);
-      }
-    }
-  }
-
-  // Use the IVA result
-  if (ivaResults.length > 0) {
-    // If multiple IVA lines, sum them (multi-rate tickets)
-    let totalVAT = 0;
-    let detectedRate = '';
-    for (const iv of ivaResults) {
-      totalVAT += parseFloat(iv.amount) || 0;
-      if (iv.rate) detectedRate = iv.rate;
-    }
-    result.vat = totalVAT.toFixed(2);
-    if (detectedRate) result.vatRate = detectedRate;
-  }
-
-  // If we found BASE IMPONIBLE + TOTAL but no explicit IVA amount
-  if (!result.vat && baseImponible && result.total) {
-    const total = parseFloat(result.total);
-    const vatAmount = total - baseImponible;
-    if (vatAmount > 0 && vatAmount < total) {
-      result.vat = vatAmount.toFixed(2);
-      // Try to detect rate from the calculation
-      const calcRate = (vatAmount / baseImponible) * 100;
-      if (Math.abs(calcRate - 21) < 1.5) result.vatRate = '21';
-      else if (Math.abs(calcRate - 10) < 1.5) result.vatRate = '10';
-      else if (Math.abs(calcRate - 4) < 1) result.vatRate = '4';
-    }
-  }
-
-  // If still no VAT but we know it's included, estimate by category
-  if (!result.vat && result.total) {
-    const total = parseFloat(result.total);
-    const category = detectCategory(cleanedText);
-    const defaultRates = {
-      comida: 10,
-      hotel: 10,
-      transporte: 10,
-      combustible: 21,
-      parking: 21,
-      peaje: 21,
-    };
-    const rate = defaultRates[category];
-    if (rate) {
-      result.vat = (total - total / (1 + rate / 100)).toFixed(2);
-      result.vatRate = String(rate);
-    }
-  }
-
-  // --- CATEGORY ---
-  result.category = detectCategory(cleanedText);
-
-  return result;
 }
 
 function cleanProviderName(name) {
@@ -2337,6 +2165,9 @@ function fillForm(parsed) {
   setField('inputDate', parsed.date, 'badge-date');
   setField('inputTotal', parsed.total, 'badge-total');
   setField('inputVAT', parsed.vat, 'badge-vat');
+  setField('inputAddress', parsed.address, 'badge-address');
+  setField('inputCity', parsed.city, 'badge-city');
+  setField('inputTaxId', parsed.taxId, 'badge-taxId');
 
   if (parsed.category) {
     document.getElementById('inputCategory').value = parsed.category;
@@ -2442,6 +2273,9 @@ function getFormData(status) {
     vatRate: document.getElementById('inputVATRate').value,
     payment: document.getElementById('inputPayment').value,
     notes: document.getElementById('inputNotes').value,
+    address: document.getElementById('inputAddress').value,
+    city: document.getElementById('inputCity').value,
+    taxId: document.getElementById('inputTaxId').value,
     status: status,
     image: currentImage || null,
     createdAt: new Date().toISOString(),
@@ -2567,6 +2401,11 @@ function saveFlowUrl() {
   updateSyncStatus();
 }
 
+function saveOcrUrl() {
+  const url = document.getElementById('settingsOcrUrl').value.trim();
+  localStorage.setItem('ocrUrl', url);
+}
+
 function updateSyncStatus() {
   const url = getFlowUrl();
   const badge = document.getElementById('syncBadge');
@@ -2598,7 +2437,7 @@ async function syncToCloud(expenseData) {
   }
 
   try {
-    const payload = {
+ const payload = {
       action: 'add_expense',
       userName: name,
       userEmail: email,
@@ -2615,7 +2454,12 @@ async function syncToCloud(expenseData) {
         status: expenseData.status || 'pending',
         createdAt: expenseData.createdAt || new Date().toISOString(),
       },
-      // Send image only if it's a real base64 image (not null, not 'image_captured')
+      // -- LOS 3 NUEVOS CAMPOS QUE VIAJAN A POWER AUTOMATE --
+      address: expenseData.address || '',
+      city: expenseData.city || '',
+      taxId: expenseData.taxId || '',
+      
+      // Send image only if it's a real base64 image
       image: (expenseData.image && expenseData.image.startsWith('data:')) ? expenseData.image : null,
     };
 
@@ -2834,6 +2678,15 @@ function showDetail(id) {
       </div>
     </div>
 
+    ${(exp.address || exp.taxId) ? `
+    <div style="background: var(--bg-elevated); padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
+      <div style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; margin-bottom: 6px; font-weight: 700;">Datos Fiscales</div>
+      ${exp.taxId ? `<div><strong>NIF/Tax ID:</strong> ${exp.taxId}</div>` : ''}
+      ${exp.address ? `<div><strong>Dirección:</strong> ${exp.address}</div>` : ''}
+      ${exp.city ? `<div><strong>Ciudad:</strong> ${exp.city}</div>` : ''}
+    </div>
+    ` : ''}
+    
     <div style="margin-bottom:16px;">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${t('payment_method')}</div>
       <div style="font-size:14px;">${exp.payment === 'tarjeta_corp' ? 'Tarjeta corp.' : exp.payment === 'efectivo' ? 'Efectivo' : 'Tarjeta propia'}</div>
@@ -2877,19 +2730,24 @@ function exportToCSV() {
     return;
   }
 
-  const headers = ['ID', 'Proveedor', 'Fecha', 'Categoría', 'Total (€)', 'IVA (€)', 'Tipo IVA (%)', 'Método pago', 'Estado', 'Notas', 'Creado'];
+  // Nuevas cabeceras añadidas
+  const headers = ['ID', 'Proveedor', 'Fecha', 'Categoría', 'Total (€)', 'IVA (€)', 'Tipo IVA (%)', 'Dirección', 'Ciudad', 'NIF/TaxID', 'Método pago', 'Estado', 'Notas', 'Creado'];
+  
   const rows = expenses.map(e => [
     e.id,
-    `"${e.provider}"`,
-    e.date,
-    e.category,
-    e.total,
-    e.vat,
-    e.vatRate,
-    e.payment,
-    e.status,
+    `"${e.provider || ''}"`,
+    e.date || '',
+    e.category || '',
+    e.total || 0,
+    e.vat || 0,
+    e.vatRate || '',
+    `"${e.address || ''}"`,  // Nuevo
+    `"${e.city || ''}"`,     // Nuevo
+    `"${e.taxId || ''}"`,    // Nuevo
+    e.payment || '',
+    e.status || '',
     `"${(e.notes || '').replace(/"/g, '""')}"`,
-    e.createdAt,
+    e.createdAt || '',
   ]);
 
   const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
@@ -2898,7 +2756,7 @@ function exportToCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `gastos_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `gastos_schaeffler_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast(t('exported'), 'success');
@@ -3320,6 +3178,7 @@ function init() {
   updateSyncStatus();
   // Don't auto-retry on load — user can manually retry from settings
   // setTimeout(retrySyncAll, 3000);
+  document.getElementById('settingsOcrUrl').value = localStorage.getItem('ocrUrl') || '';
 }
 
 init();
